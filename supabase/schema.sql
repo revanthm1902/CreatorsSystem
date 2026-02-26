@@ -78,40 +78,34 @@ ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.points_log ENABLE ROW LEVEL SECURITY;
 
 -- 7. RLS Policies for profiles
-CREATE POLICY "Users can view their own profile"
+-- IMPORTANT: Use simple policies that don't cause circular dependencies
+
+-- All authenticated users can view all profiles (safe for internal team apps)
+CREATE POLICY "Authenticated users can view profiles"
   ON public.profiles FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Users can update their own profile (for password reset flag, etc.)
+CREATE POLICY "Users can update own profile"
+  ON public.profiles FOR UPDATE
+  TO authenticated
   USING (auth.uid() = id);
 
-CREATE POLICY "Directors and Admins can view all profiles"
-  ON public.profiles FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role IN ('Director', 'Admin')
-    )
-  );
-
-CREATE POLICY "Directors can manage all profiles"
+-- Directors have full control over all profiles
+CREATE POLICY "Directors have full access"
   ON public.profiles FOR ALL
+  TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'Director'
-    )
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'Director'
   );
 
-CREATE POLICY "Users can update their own profile"
-  ON public.profiles FOR UPDATE
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "Admins can create User profiles"
+-- Admins can insert new User profiles
+CREATE POLICY "Admins can insert profiles"
   ON public.profiles FOR INSERT
+  TO authenticated
   WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role IN ('Director', 'Admin')
-    )
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) IN ('Director', 'Admin')
   );
 
 -- 8. RLS Policies for tasks

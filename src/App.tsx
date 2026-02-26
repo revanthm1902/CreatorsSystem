@@ -21,10 +21,17 @@ function App() {
   // Only show loading during initial auth check, not during login
   if (!initialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-900">
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: 'var(--bg-main)' }}
+      >
         <div className="text-center">
-          <div className="w-12 h-12 border-3 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Loading Creators System...</p>
+          <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg btn-glow animate-pulse">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <p className="font-medium" style={{ color: 'var(--text-muted)' }}>Loading Creators System...</p>
         </div>
       </div>
     );

@@ -42,14 +42,14 @@ export function DirectorDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Director Dashboard</h1>
-          <p className="text-gray-400 mt-1">
+          <h1 className="text-3xl font-bold gradient-text">Director Dashboard</h1>
+          <p className="mt-1" style={{ color: 'var(--text-muted)' }}>
             Welcome back, {profile?.full_name}
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-hover text-white rounded-xl transition-all shadow-lg btn-glow hover:scale-105 active:scale-95 font-medium"
         >
           <Plus className="w-5 h-5" />
           Create Task
@@ -91,8 +91,11 @@ export function DirectorDashboard() {
       </div>
 
       {/* Top Performers */}
-      <div className="bg-surface-800 border border-surface-600 rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div 
+        className="card rounded-2xl p-6"
+        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
+      >
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
           <Zap className="w-5 h-5 text-accent" />
           Top Performers
         </h2>
@@ -100,21 +103,22 @@ export function DirectorDashboard() {
           {leaderboard.slice(0, 5).map((user, index) => (
             <div
               key={user.id}
-              className="flex items-center gap-4 p-3 bg-surface-700 rounded-lg"
+              className="flex items-center gap-4 p-4 rounded-xl transition-all hover:scale-[1.01]"
+              style={{ backgroundColor: 'var(--bg-elevated)' }}
             >
-              <span className={`w-8 h-8 flex items-center justify-center rounded-full font-bold ${
-                index === 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                index === 1 ? 'bg-gray-400/20 text-gray-300' :
-                index === 2 ? 'bg-orange-500/20 text-orange-400' :
-                'bg-surface-600 text-gray-400'
+              <span className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold text-lg ${
+                index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-lg' :
+                index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white shadow-lg' :
+                index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg' :
+                'bg-primary/20 text-primary'
               }`}>
                 {index + 1}
               </span>
               <div className="flex-1">
-                <p className="text-white font-medium">{user.full_name}</p>
-                <p className="text-xs text-gray-500">{user.employee_id}</p>
+                <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{user.employee_id}</p>
               </div>
-              <div className="flex items-center gap-1 text-accent">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent">
                 <Zap className="w-4 h-4" />
                 <span className="font-bold">{user.total_tokens}</span>
               </div>
@@ -125,7 +129,7 @@ export function DirectorDashboard() {
 
       {/* Recent Tasks Under Review */}
       <div>
-        <h2 className="text-lg font-semibold text-white mb-4">Tasks Under Review</h2>
+        <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Tasks Under Review</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {tasks
             .filter((t) => t.status === 'Under Review')
@@ -134,7 +138,7 @@ export function DirectorDashboard() {
               <TaskCard key={task.id} task={task} isAdminView />
             ))}
           {tasks.filter((t) => t.status === 'Under Review').length === 0 && (
-            <p className="text-gray-500 col-span-2">No tasks pending review</p>
+            <p style={{ color: 'var(--text-muted)' }} className="col-span-2">No tasks pending review</p>
           )}
         </div>
       </div>
@@ -152,23 +156,34 @@ interface StatCardProps {
 }
 
 function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
-  const colorClasses = {
-    primary: 'bg-primary/10 text-primary',
-    warning: 'bg-warning/10 text-warning',
-    accent: 'bg-accent/10 text-accent',
-    success: 'bg-success/10 text-success',
-    danger: 'bg-danger/10 text-danger',
+  const gradientClasses = {
+    primary: 'stat-gradient-1',
+    warning: 'stat-gradient-4',
+    accent: 'stat-gradient-2',
+    success: 'stat-gradient-3',
+    danger: 'stat-gradient-4',
+  };
+
+  const iconClasses = {
+    primary: 'bg-primary/20 text-primary',
+    warning: 'bg-warning/20 text-warning',
+    accent: 'bg-accent/20 text-accent',
+    success: 'bg-success/20 text-success',
+    danger: 'bg-danger/20 text-danger',
   };
 
   return (
-    <div className="bg-surface-800 border border-surface-600 rounded-xl p-6">
+    <div 
+      className={`card rounded-2xl p-6 ${gradientClasses[color]} hover:scale-[1.02] transition-transform cursor-default`}
+      style={{ borderColor: 'var(--border-color)' }}
+    >
       <div className="flex items-center gap-4">
-        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClasses[color]}`}>
-          <Icon className="w-6 h-6" />
+        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${iconClasses[color]}`}>
+          <Icon className="w-7 h-7" />
         </div>
         <div>
-          <p className="text-2xl font-bold text-white">{value}</p>
-          <p className="text-sm text-gray-400">{label}</p>
+          <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</p>
+          <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{label}</p>
         </div>
       </div>
     </div>

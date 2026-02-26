@@ -40,23 +40,29 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
   const canReview = isAdminView && task.status === 'Under Review';
 
   return (
-    <div className="bg-surface-800 border border-surface-600 rounded-xl p-6 hover:border-primary/30 transition-all">
+    <div 
+      className="card rounded-2xl p-6 hover:scale-[1.01] transition-all"
+      style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
+    >
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-white mb-2">{task.title}</h3>
-          <p className="text-gray-400 text-sm line-clamp-2">{task.description}</p>
+          <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{task.title}</h3>
+          <p className="text-sm line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{task.description}</p>
         </div>
         <TaskStatusBadge status={task.status} />
       </div>
 
-      <div className="flex items-center justify-between border-t border-surface-600 pt-4 mt-4">
+      <div 
+        className="flex items-center justify-between border-t pt-4 mt-4"
+        style={{ borderColor: 'var(--border-color)' }}
+      >
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1 text-accent">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent">
             <Zap className="w-4 h-4" />
             <span className="font-bold">{task.tokens}</span>
-            <span className="text-xs text-gray-500">tokens</span>
+            <span className="text-xs opacity-70">tokens</span>
           </div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
             Due: {format(new Date(task.deadline), 'MMM d, yyyy h:mm a')}
           </div>
         </div>
@@ -65,12 +71,15 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
       </div>
 
       {showActions && (
-        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-surface-600">
+        <div 
+          className="flex items-center gap-3 mt-4 pt-4 border-t"
+          style={{ borderColor: 'var(--border-color)' }}
+        >
           {canMarkDone && (
             <button
               onClick={handleMarkDone}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary to-primary-hover text-white rounded-xl transition-all disabled:opacity-50 font-medium shadow-lg hover:scale-105 active:scale-95"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -88,7 +97,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
               <button
                 onClick={handleApprove}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-success hover:bg-success/80 text-white rounded-lg transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2.5 bg-success hover:bg-success/80 text-white rounded-xl transition-all disabled:opacity-50 font-medium shadow-lg hover:scale-105 active:scale-95"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -102,7 +111,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
               <button
                 onClick={handleReject}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-danger hover:bg-danger/80 text-white rounded-lg transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger/80 text-white rounded-xl transition-all disabled:opacity-50 font-medium hover:scale-105 active:scale-95"
               >
                 <XCircle className="w-4 h-4" />
                 Reject

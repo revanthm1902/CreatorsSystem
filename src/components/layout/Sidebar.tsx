@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
+import { useThemeStore } from '../../stores/themeStore';
 import type { UserRole } from '../../types/database';
 import {
   Zap,
@@ -10,6 +11,8 @@ import {
   LogOut,
   User,
   ChevronRight,
+  Sun,
+  Moon,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -40,6 +43,7 @@ const navItemsByRole: Record<UserRole, NavItem[]> = {
 
 export function Sidebar() {
   const { profile, signOut } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -50,52 +54,102 @@ export function Sidebar() {
   const navItems = profile?.role ? navItemsByRole[profile.role] : [];
 
   return (
-    <aside className="w-64 bg-surface-800 border-r border-surface-600 flex flex-col h-screen sticky top-0">
+    <aside 
+      className="w-72 flex flex-col h-screen sticky top-0 border-r"
+      style={{ 
+        backgroundColor: 'var(--bg-card)', 
+        borderColor: 'var(--border-color)' 
+      }}
+    >
       {/* Logo */}
-      <div className="p-6 border-b border-surface-600">
+      <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
-            <Zap className="w-6 h-6 text-primary" />
+          <div className="w-11 h-11 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-lg btn-glow">
+            <Zap className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">Creators</h1>
-            <p className="text-xs text-gray-500">AryVerse System</p>
+            <h1 className="text-lg font-bold gradient-text">Creators</h1>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>AryVerse System</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-1.5">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg transition-all group ${
+              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
                 isActive
-                  ? 'bg-primary text-white'
-                  : 'text-gray-400 hover:bg-surface-700 hover:text-white'
+                  ? 'bg-primary text-white shadow-lg btn-glow'
+                  : ''
               }`
             }
+            style={({ isActive }) => 
+              isActive ? {} : { color: 'var(--text-secondary)' }
+            }
           >
-            <item.icon className="w-5 h-5" />
-            <span className="font-medium">{item.label}</span>
-            <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+            {({ isActive }) => (
+              <>
+                <item.icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
+                <span className="font-medium">{item.label}</span>
+                <ChevronRight className={`w-4 h-4 ml-auto transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
+      {/* Theme Toggle */}
+      <div className="px-4 pb-2">
+        <button
+          onClick={toggleTheme}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+          style={{ 
+            backgroundColor: 'var(--bg-elevated)',
+            color: 'var(--text-secondary)'
+          }}
+        >
+          <span className="text-sm font-medium">
+            {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+          </span>
+          <div 
+            className="w-10 h-6 rounded-full flex items-center px-1 transition-all"
+            style={{ 
+              backgroundColor: theme === 'dark' ? 'var(--color-primary)' : 'var(--bg-hover)'
+            }}
+          >
+            <div 
+              className={`w-4 h-4 rounded-full bg-white flex items-center justify-center transition-transform ${
+                theme === 'dark' ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            >
+              {theme === 'dark' ? (
+                <Moon className="w-2.5 h-2.5 text-primary" />
+              ) : (
+                <Sun className="w-2.5 h-2.5 text-warning" />
+              )}
+            </div>
+          </div>
+        </button>
+      </div>
+
       {/* User Profile & Logout */}
-      <div className="p-4 border-t border-surface-600 space-y-4">
-        <div className="flex items-center gap-3 px-4 py-3 bg-surface-700 rounded-lg">
-          <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+      <div className="p-4 border-t space-y-3" style={{ borderColor: 'var(--border-color)' }}>
+        <div 
+          className="flex items-center gap-3 px-4 py-3 rounded-xl"
+          style={{ backgroundColor: 'var(--bg-elevated)' }}
+        >
+          <div className="w-10 h-10 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full flex items-center justify-center">
             <User className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">
+            <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
               {profile?.full_name || 'User'}
             </p>
-            <p className="text-xs text-gray-500">{profile?.employee_id}</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{profile?.employee_id}</p>
           </div>
           {profile?.role === 'User' && (
             <div className="flex items-center gap-1 text-accent">
@@ -107,10 +161,11 @@ export function Sidebar() {
 
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-gray-400 hover:text-white hover:bg-surface-700 rounded-lg transition-all"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all hover:bg-danger/10 hover:text-danger"
+          style={{ color: 'var(--text-muted)' }}
         >
           <LogOut className="w-5 h-5" />
-          <span>Sign Out</span>
+          <span className="font-medium">Sign Out</span>
         </button>
       </div>
     </aside>
