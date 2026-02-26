@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { LogIn, Eye, EyeOff, Zap } from 'lucide-react';
+import { LogIn, Eye, EyeOff, Zap, HelpCircle } from 'lucide-react';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -98,6 +99,14 @@ export function LoginPage() {
           <p className="text-center text-gray-500 text-sm mt-6">
             Contact your Admin for account access
           </p>
+
+          <Link
+            to="/setup"
+            className="flex items-center justify-center gap-2 text-primary hover:text-primary/80 text-sm mt-4 transition-colors"
+          >
+            <HelpCircle className="w-4 h-4" />
+            First time? View Setup Guide
+          </Link>
         </div>
       </div>
     </div>

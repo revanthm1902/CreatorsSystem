@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { SetupGuidePage } from './pages/SetupGuidePage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { UsersPage } from './pages/UsersPage';
 import { TasksPage } from './pages/TasksPage';
@@ -33,6 +34,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
+        <Route path="/setup" element={<SetupGuidePage />} />
         <Route
           path="/login"
           element={

@@ -1,139 +1,169 @@
-# Creators System - AryVerse Task & Performance Manager
+# Creators System
 
-A modern Task Management System built with React, TypeScript, Tailwind CSS, and Supabase. Features role-based access control, real-time task updates, and a token-based performance tracking system.
+<div align="center">
 
-## Features
+![Creators System](https://img.shields.io/badge/Creators-System-6366f1?style=for-the-badge)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript)
+![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=flat-square&logo=supabase)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-### Core Features
-- **Role-Based Access Control**: Director, Admin, and User roles with hierarchical permissions
-- **Task Management**: Create, assign, and track tasks with deadlines and token values
-- **Token System**: Points awarded for completing tasks on time
-- **Real-time Updates**: Live task status updates via Supabase realtime
-- **Leaderboard**: Visual ranking of users based on accumulated tokens
-- **Task Countdown**: Live countdown timers for task deadlines
+**A modern Task & Performance Management System for teams**
+
+[Report Bug](https://github.com/revanthm1902/CreatorsSystem/issues) · [Request Feature](https://github.com/revanthm1902/CreatorsSystem/issues)
+
+</div>
+
+---
+
+## About The Project
+
+Creators System is an open-source task management platform built for AryVerse. It features role-based access control, real-time task updates, and a token-based performance tracking system to gamify productivity.
+
+### Key Features
+
+- **Role-Based Access Control** - Director, Admin, and User roles with hierarchical permissions
+- **Task Management** - Create, assign, and track tasks with deadlines and token rewards
+- **Token System** - Points awarded for completing tasks on time
+- **Real-time Updates** - Live task status updates via Supabase Realtime
+- **Leaderboard** - Visual ranking of users based on accumulated tokens
+- **Auto Employee IDs** - Unique IDs generated automatically (e.g., `AV-2026-001`)
+- **Secure Onboarding** - Temporary password with forced reset on first login
 
 ### User Roles
 
 | Role | Capabilities |
 |------|--------------|
-| **Director** | Full dashboard access, view all tasks, manage Admins/Users, view global leaderboards |
-| **Admin** | Create/assign tasks, set deadlines & token values, approve/reject completed tasks |
-| **User** | View assigned tasks, mark tasks as done, track personal tokens |
-
-### Auth Flow
-- Unique Employee ID auto-generated (e.g., AV-2026-001)
-- Temporary password set by Admin
-- First-login password reset enforcement
-- Secure password handling via Supabase Auth
+| **Director** | Full system access, manage all users, view analytics |
+| **Admin** | Create/assign tasks, set deadlines & tokens, approve/reject work |
+| **User** | View assigned tasks, submit completed work, track tokens |
 
 ## Tech Stack
 
-- **Frontend**: React 18 + Vite + TypeScript
-- **Styling**: Tailwind CSS v4 (Dark Mode)
-- **State Management**: Zustand
-- **Icons**: Lucide React
-- **Database**: Supabase (PostgreSQL)
-- **Auth**: Supabase Auth
-- **Real-time**: Supabase Realtime
+- **Frontend:** React 19 + Vite + TypeScript
+- **Styling:** Tailwind CSS v4 (Dark Mode)
+- **State:** Zustand
+- **Icons:** Lucide React
+- **Backend:** Supabase (PostgreSQL + Auth + Realtime)
 
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
-- Supabase account & project
+- npm or yarn
+- [Supabase](https://supabase.com) account (free tier works)
 
 ### Installation
 
-1. **Install dependencies**
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/revanthm1902/CreatorsSystem.git
+   cd CreatorsSystem
+   ```
+
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. **Set up Supabase**
-
-   Create a new Supabase project and run the SQL schema:
+3. **Set up Supabase**
    
-   ```bash
-   # Copy the contents of supabase/schema.sql to your Supabase SQL Editor and execute
-   ```
-
-3. **Configure environment variables**
+   - Create a new project at [supabase.com](https://supabase.com)
+   - Go to **SQL Editor** and run the contents of `supabase/schema.sql`
    
-   Copy `.env.example` to `.env` and fill in your Supabase credentials:
+4. **Configure environment**
    ```bash
    cp .env.example .env
    ```
    
+   Edit `.env` with your Supabase credentials:
    ```env
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key-here
    ```
 
-4. **Create initial Director account**
+5. **Create your first Director account**
    
-   In Supabase Dashboard:
-   - Go to Authentication > Users
-   - Create a new user with email/password
-   - In SQL Editor, insert a profile:
+   - In Supabase Dashboard → **Authentication** → **Users** → **Add User**
+   - Create a user with email and password
+   - Copy the user UUID from the table
+   - Run this SQL in the SQL Editor:
    ```sql
-   INSERT INTO profiles (id, employee_id, full_name, role, total_tokens, is_temporary_password)
-   VALUES ('user-uuid-from-auth', 'AV-2026-001', 'Director Name', 'Director', 0, false);
+   INSERT INTO public.profiles (id, full_name, role, is_temporary_password)
+   VALUES ('YOUR_USER_UUID', 'Director Name', 'Director', false);
    ```
 
-5. **Start development server**
+6. **Start the development server**
    ```bash
    npm run dev
    ```
+   
+   Visit `http://localhost:5173/setup` for the full setup guide!
+
+## Login Instructions
+
+### First-Time Setup
+
+1. You need to create users in **Supabase Dashboard** → **Authentication** → **Users**
+2. After creating the auth user, run SQL to create their profile in the `profiles` table
+3. The **employee_id** is auto-generated by a database trigger (e.g., `AV-2026-001`)
+
+### Login Flow
+
+| Step | Action |
+|------|--------|
+| 1 | Admin creates user in Supabase with temporary password |
+| 2 | Admin runs SQL to create profile with `is_temporary_password = true` |
+| 3 | User logs in with temporary password |
+| 4 | System redirects to password reset page |
+| 5 | User sets new password |
+| 6 | User gains access to their dashboard |
+
+### Role-Based Dashboards
+
+- **Director** → Full access: Dashboard, All Tasks, Manage Users, Leaderboard
+- **Admin** → Dashboard, Tasks, Users, Leaderboard
+- **User** → My Tasks, Leaderboard
 
 ## Project Structure
 
 ```
 src/
 ├── components/
-│   ├── dashboard/     # Role-specific dashboard components
-│   ├── layout/        # Sidebar, DashboardLayout
-│   ├── routing/       # ProtectedRoute
-│   └── tasks/         # TaskCard, TaskCountdown, CreateTaskModal
+│   ├── dashboard/      # Role-specific dashboards
+│   ├── layout/         # Sidebar, DashboardLayout
+│   ├── routing/        # ProtectedRoute
+│   └── tasks/          # TaskCard, TaskCountdown, CreateTaskModal
 ├── lib/
-│   └── supabase.ts    # Supabase client configuration
+│   └── supabase.ts     # Supabase client
 ├── pages/
 │   ├── LoginPage.tsx
+│   ├── SetupGuidePage.tsx   # In-app setup instructions
 │   ├── ResetPasswordPage.tsx
 │   ├── LeaderboardPage.tsx
 │   ├── UsersPage.tsx
 │   └── TasksPage.tsx
-├── stores/
-│   ├── authStore.ts   # Authentication state
-│   ├── taskStore.ts   # Task management state
-│   └── userStore.ts   # User management state
+├── stores/             # Zustand state management
+│   ├── authStore.ts
+│   ├── taskStore.ts
+│   └── userStore.ts
 ├── types/
-│   └── database.ts    # TypeScript types and Supabase schema
-├── App.tsx            # Main app with routing
-├── main.tsx           # Entry point
-└── index.css          # Tailwind imports
+│   └── database.ts     # TypeScript types
+└── App.tsx
 ```
 
-## Database Schema
+## Task Workflow
 
-### Tables
-
-- **profiles**: User profiles with role, tokens, and employee ID
-- **tasks**: Task records with status, deadlines, and token values
-- **points_log**: Audit log for all token transactions
-
-### Row Level Security (RLS)
-
-- Users can only view their own tasks and profile
-- Admins can view all tasks and profiles
-- Directors have full access
-- Users cannot modify their own token balance
-
-## Task Flow
-
-1. **Admin creates task** → Status: `Pending`
-2. **User marks as Done** → Status: `Under Review`
-3. **Admin approves** → Status: `Completed`, tokens awarded if on time
-4. **Admin rejects** → Status: `Rejected`, no tokens awarded
+```
+Admin creates task → Pending
+       ↓
+User submits work → Under Review
+       ↓
+Admin approves → Completed (tokens awarded if on time)
+       or
+Admin rejects → Rejected (no tokens)
+```
 
 ## Scripts
 
@@ -144,6 +174,64 @@ npm run preview  # Preview production build
 npm run lint     # Run ESLint
 ```
 
+## Contributing
+
+Contributions are what make the open source community amazing! Any contributions you make are **greatly appreciated**.
+
+### How to Contribute
+
+1. **Fork the Project**
+2. **Create your Feature Branch**
+   ```bash
+   git checkout -b feature/AmazingFeature
+   ```
+3. **Commit your Changes**
+   ```bash
+   git commit -m 'Add some AmazingFeature'
+   ```
+4. **Push to the Branch**
+   ```bash
+   git push origin feature/AmazingFeature
+   ```
+5. **Open a Pull Request**
+
+### Contribution Ideas
+
+- [ ] Add email notifications for task deadlines
+- [ ] Implement task categories/tags
+- [ ] Add task comments/attachments
+- [ ] Create mobile-responsive improvements
+- [ ] Add dark/light theme toggle
+- [ ] Implement task analytics dashboard
+- [ ] Add export functionality (CSV/PDF)
+- [ ] Create API documentation
+
+### Code Style
+
+- Use TypeScript strict mode
+- Follow React best practices (hooks, functional components)
+- Use Tailwind CSS for styling
+- Write meaningful commit messages
+
 ## License
 
-MIT
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## Acknowledgments
+
+- [React](https://react.dev)
+- [Vite](https://vitejs.dev)
+- [Tailwind CSS](https://tailwindcss.com)
+- [Supabase](https://supabase.com)
+- [Zustand](https://zustand-demo.pmnd.rs)
+- [Lucide Icons](https://lucide.dev)
+
+---
+
+<div align="center">
+
+Made with ❤️ by [revanthm1902](https://github.com/revanthm1902)
+
+⭐ Star this repo if you find it helpful!
+
+</div>
