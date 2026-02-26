@@ -50,7 +50,7 @@ export function LoginPage() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/15 rounded-full blur-3xl animate-pulse-soft" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-accent/15 rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-primary/5 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-md relative z-10 animate-scale-in">
@@ -73,7 +73,7 @@ export function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <div className="bg-danger/10 border border-danger/30 text-danger rounded-xl p-4 text-sm flex items-start gap-3 animate-fade-in">
-                <div className="w-5 h-5 rounded-full bg-danger/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-5 h-5 rounded-full bg-danger/20 flex items-center justify-center shrink-0 mt-0.5">
                   <span className="text-xs font-bold">!</span>
                 </div>
                 <span>{error}</span>
@@ -141,7 +141,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-r from-primary to-primary-hover text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg btn-glow hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-linear-to-r from-primary to-primary-hover text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg btn-glow hover:scale-[1.02] active:scale-[0.98]"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

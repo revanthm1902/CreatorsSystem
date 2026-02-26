@@ -79,7 +79,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
             <button
               onClick={handleMarkDone}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary to-primary-hover text-white rounded-xl transition-all disabled:opacity-50 font-medium shadow-lg hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-primary to-primary-hover text-white rounded-xl transition-all disabled:opacity-50 font-medium shadow-lg hover:scale-105 active:scale-95"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

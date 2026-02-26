@@ -96,8 +96,8 @@ export function Sidebar() {
             className={({ isActive }) =>
               `nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all group stagger-item ${
                 isActive
-                  ? 'bg-gradient-to-r from-primary to-primary-hover text-white shadow-lg'
-                  : 'hover:bg-[var(--bg-elevated)]'
+                  ? 'bg-linear-to-r from-primary to-primary-hover text-white shadow-lg'
+                  : 'hover:bg-(--bg-elevated)'
               }`
             }
             style={({ isActive }) => ({ 
@@ -156,7 +156,7 @@ export function Sidebar() {
           className="flex items-center gap-3 px-4 py-3 rounded-xl"
           style={{ backgroundColor: 'var(--bg-elevated)' }}
         >
-          <div className="w-10 h-10 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full flex items-center justify-center">
+          <div className="w-10 h-10 bg-linear-to-br from-primary/30 to-accent/30 rounded-full flex items-center justify-center">
             <User className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
