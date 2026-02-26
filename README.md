@@ -156,7 +156,9 @@ src/
 ## Task Workflow
 
 ```
-Admin creates task → Pending
+Admin creates task → Pending (awaiting Director approval)
+       ↓
+Director approves → Task visible to User
        ↓
 User submits work → Under Review
        ↓
@@ -164,6 +166,55 @@ Admin approves → Completed (tokens awarded if on time)
        or
 Admin rejects → Rejected (no tokens)
 ```
+
+**Note:** Tasks created by Directors are auto-approved and immediately visible to Users.
+
+## Production Deployment
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+This generates optimized files in the `dist/` folder with code splitting for vendors.
+
+### Deploy to Popular Platforms
+
+**Vercel (Recommended)**
+```bash
+npm i -g vercel
+vercel
+```
+
+**Netlify**
+```bash
+npm run build
+# Drag dist/ folder to netlify.com or use CLI
+```
+
+**Railway / Render**
+- Connect your GitHub repo
+- Set build command: `npm run build`
+- Set output directory: `dist`
+- Add environment variables in the dashboard
+
+### Environment Variables for Production
+
+Set these in your hosting platform's dashboard:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+### Supabase Configuration for Production
+
+1. **Disable Email Confirmation** (recommended for internal tools):
+   - Supabase Dashboard → Authentication → Providers → Email
+   - Turn off "Confirm email"
+
+2. **Configure URL Settings**:
+   - Authentication → URL Configuration
+   - Set Site URL to your production domain
+   - Add redirect URLs for your domain
 
 ## Scripts
 
@@ -201,10 +252,11 @@ Contributions are what make the open source community amazing! Any contributions
 - [ ] Implement task categories/tags
 - [ ] Add task comments/attachments
 - [ ] Create mobile-responsive improvements
-- [ ] Add dark/light theme toggle
+- [x] Add dark/light theme toggle *(Implemented!)*
 - [ ] Implement task analytics dashboard
 - [ ] Add export functionality (CSV/PDF)
 - [ ] Create API documentation
+- [x] Director approval workflow for admin-created tasks *(Implemented!)*
 
 ### Code Style
 

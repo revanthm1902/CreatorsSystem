@@ -38,11 +38,15 @@ CREATE TABLE IF NOT EXISTS public.tasks (
   deadline TIMESTAMPTZ NOT NULL,
   tokens INTEGER NOT NULL CHECK (tokens >= 0),
   status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Under Review', 'Completed', 'Rejected')),
+  director_approved BOOLEAN DEFAULT FALSE,
   submitted_at TIMESTAMPTZ,
   approved_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration: Add director_approved column to existing tasks table
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS director_approved BOOLEAN DEFAULT FALSE;
 
 -- 3. Create points log table
 CREATE TABLE IF NOT EXISTS public.points_log (

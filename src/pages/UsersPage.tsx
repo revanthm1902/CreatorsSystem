@@ -16,7 +16,7 @@ import {
 import type { UserRole } from '../types/database';
 
 export function UsersPage() {
-  const { users, fetchUsers, createUser, deleteUser } = useUserStore();
+  const { users, loading, initialized, fetchUsers, createUser, deleteUser } = useUserStore();
   const { profile } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -83,7 +83,17 @@ export function UsersPage() {
           <span className="text-right">Actions</span>
         </div>
         <div className="divide-y divide-surface-600">
-          {users.map((user) => (
+          {loading && !initialized ? (
+            <div className="p-8 flex justify-center">
+              <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+            </div>
+          ) : users.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No users found</p>
+            </div>
+          ) : (
+            users.map((user) => (
             <div
               key={user.id}
               className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 p-4 items-center hover:bg-surface-700/50 transition-all"
@@ -124,12 +134,7 @@ export function UsersPage() {
                 )}
               </div>
             </div>
-          ))}
-          {users.length === 0 && (
-            <div className="p-8 text-center text-gray-500">
-              <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No users found</p>
-            </div>
+          ))
           )}
         </div>
       </div>

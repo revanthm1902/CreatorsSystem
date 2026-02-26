@@ -5,7 +5,7 @@ import { TaskStatusBadge } from './TaskStatusBadge';
 import { TaskCountdown } from './TaskCountdown';
 import { useTaskStore } from '../../stores/taskStore';
 import { useAuthStore } from '../../stores/authStore';
-import { Zap, CheckCircle, XCircle, Send } from 'lucide-react';
+import { Zap, CheckCircle, XCircle, Send, ShieldCheck, Clock } from 'lucide-react';
 
 interface TaskCardProps {
   task: Task;
@@ -15,7 +15,7 @@ interface TaskCardProps {
 
 export function TaskCard({ task, showActions = true, isAdminView = false }: TaskCardProps) {
   const [loading, setLoading] = useState(false);
-  const { updateTaskStatus, approveTask, rejectTask } = useTaskStore();
+  const { updateTaskStatus, approveTask, rejectTask, approveTaskByDirector } = useTaskStore();
   const { profile } = useAuthStore();
 
   const handleMarkDone = async () => {
@@ -36,8 +36,16 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
     setLoading(false);
   };
 
+  const handleDirectorApprove = async () => {
+    setLoading(true);
+    await approveTaskByDirector(task.id);
+    setLoading(false);
+  };
+
   const canMarkDone = profile?.role === 'User' && task.status === 'Pending';
   const canReview = isAdminView && task.status === 'Under Review';
+  const canDirectorApprove = profile?.role === 'Director' && !task.director_approved && task.status === 'Pending';
+  const isPendingDirectorApproval = !task.director_approved && task.status === 'Pending';
 
   return (
     <div 
@@ -117,6 +125,30 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
                 Reject
               </button>
             </>
+          )}
+
+          {canDirectorApprove && (
+            <button
+              onClick={handleDirectorApprove}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl transition-all disabled:opacity-50 font-medium shadow-lg hover:scale-105 active:scale-95"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  Approve for Users
+                </>
+              )}
+            </button>
+          )}
+
+          {isPendingDirectorApproval && profile?.role === 'Admin' && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-sm">
+              <Clock className="w-4 h-4" />
+              <span>Awaiting Director Approval</span>
+            </div>
           )}
         </div>
       )}

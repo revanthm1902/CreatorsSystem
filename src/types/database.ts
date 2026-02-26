@@ -28,6 +28,7 @@ export interface Task {
   deadline: string;
   tokens: number;
   status: TaskStatus;
+  director_approved: boolean;
   submitted_at: string | null;
   approved_at: string | null;
   created_at: string;

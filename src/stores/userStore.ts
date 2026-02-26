@@ -6,48 +6,80 @@ interface UserState {
   users: Profile[];
   leaderboard: Profile[];
   loading: boolean;
-  fetchUsers: () => Promise<void>;
-  fetchLeaderboard: () => Promise<void>;
+  initialized: boolean;
+  lastFetch: number;
+  fetchUsers: (force?: boolean) => Promise<void>;
+  fetchLeaderboard: (force?: boolean) => Promise<void>;
   createUser: (email: string, password: string, fullName: string, role: 'Admin' | 'User') => Promise<{ error: string | null; employeeId?: string }>;
   deleteUser: (userId: string) => Promise<{ error: string | null }>;
+  reset: () => void;
 }
+
+const CACHE_DURATION = 30000; // 30 seconds
 
 export const useUserStore = create<UserState>((set, get) => ({
   users: [],
   leaderboard: [],
   loading: false,
+  initialized: false,
+  lastFetch: 0,
 
-  fetchUsers: async () => {
-    set({ loading: true });
+  fetchUsers: async (force = false) => {
+    const state = get();
+    const now = Date.now();
     
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Skip if already loading
+    if (state.loading) return;
     
-    if (!error && data) {
-      set({ users: data });
+    // Use cache if valid and not forcing refresh
+    if (!force && state.initialized && (now - state.lastFetch) < CACHE_DURATION) {
+      return;
     }
     
-    set({ loading: false });
+    set({ loading: true });
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (!error && data) {
+        set({ users: data, initialized: true, lastFetch: now });
+      }
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    } finally {
+      set({ loading: false });
+    }
   },
 
-  fetchLeaderboard: async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('role', 'User')
-      .order('total_tokens', { ascending: false })
-      .limit(50);
+  fetchLeaderboard: async (force = false) => {
+    const state = get();
+    const now = Date.now();
     
-    if (!error && data) {
-      set({ leaderboard: data });
+    // Use cache if valid and not forcing refresh
+    if (!force && state.leaderboard.length > 0 && (now - state.lastFetch) < CACHE_DURATION) {
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'User')
+        .order('total_tokens', { ascending: false })
+        .limit(50);
+      
+      if (!error && data) {
+        set({ leaderboard: data });
+      }
+    } catch (err) {
+      console.error('Failed to fetch leaderboard:', err);
     }
   },
 
   createUser: async (email: string, password: string, fullName: string, role: 'Admin' | 'User') => {
-    // Create auth user via admin API (this would typically be a server-side function)
-    // For demo, we'll use the signUp method and then update the profile
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -84,13 +116,12 @@ export const useUserStore = create<UserState>((set, get) => ({
       return { error: profileError.message };
     }
 
-    await get().fetchUsers();
+    // Force refresh users list
+    await get().fetchUsers(true);
     return { error: null, employeeId: profileData?.employee_id };
   },
 
   deleteUser: async (userId: string) => {
-    // Note: Deleting auth user requires admin privileges
-    // This would typically be handled by a server-side function
     const { error } = await supabase
       .from('profiles')
       .delete()
@@ -100,10 +131,15 @@ export const useUserStore = create<UserState>((set, get) => ({
       return { error: error.message };
     }
 
+    // Optimistically update local state
     set((state) => ({
       users: state.users.filter((u) => u.id !== userId),
     }));
 
     return { error: null };
+  },
+
+  reset: () => {
+    set({ users: [], leaderboard: [], loading: false, initialized: false, lastFetch: 0 });
   },
 }));

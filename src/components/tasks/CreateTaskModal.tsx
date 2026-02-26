@@ -45,7 +45,8 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
       deadline: new Date(deadline).toISOString(),
       tokens,
       status: 'Pending',
-    });
+      director_approved: false, // Will be set by store based on role
+    }, profile.role);
     setLoading(false);
 
     if (result.error) {
