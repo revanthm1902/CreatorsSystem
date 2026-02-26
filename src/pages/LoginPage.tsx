@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { LogIn, Eye, EyeOff, Zap, HelpCircle } from 'lucide-react';
 
 export function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -18,8 +19,15 @@ export function LoginPage() {
     
     if (result.error) {
       setError(result.error);
+      return;
     }
-    // Navigation is handled by the router based on auth state
+
+    // Navigate based on password reset requirement
+    if (result.requiresPasswordReset) {
+      navigate('/reset-password', { replace: true });
+    } else {
+      navigate('/dashboard', { replace: true });
+    }
   };
 
   return (

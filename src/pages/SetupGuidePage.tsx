@@ -279,6 +279,59 @@ VALUES (
           </div>
         </div>
 
+        {/* Troubleshooting */}
+        <div className="bg-surface-800 rounded-xl border border-danger/30 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-danger" />
+            Troubleshooting Login Issues
+          </h2>
+          
+          <div className="space-y-4 text-sm">
+            <div className="bg-surface-700 rounded-lg p-4">
+              <p className="text-white font-medium mb-2">Error: "Profile not found"</p>
+              <p className="text-gray-400">
+                This means you created a user in <strong className="text-white">Authentication → Users</strong> but didn't run the SQL to create their profile in the <strong className="text-white">profiles</strong> table.
+              </p>
+              <p className="text-gray-400 mt-2">
+                <strong className="text-accent">Fix:</strong> Run the SQL INSERT statement with the user's UUID from the auth table.
+              </p>
+            </div>
+
+            <div className="bg-surface-700 rounded-lg p-4">
+              <p className="text-white font-medium mb-2">Error: "Invalid login credentials"</p>
+              <p className="text-gray-400">
+                The email or password is incorrect. Check that:
+              </p>
+              <ul className="text-gray-400 mt-2 ml-4 list-disc space-y-1">
+                <li>Email is exactly as entered in Supabase Auth</li>
+                <li>Password matches (case-sensitive)</li>
+                <li>User email is confirmed (if email confirmation is enabled)</li>
+              </ul>
+            </div>
+
+            <div className="bg-surface-700 rounded-lg p-4">
+              <p className="text-white font-medium mb-2">Stuck on loading screen</p>
+              <p className="text-gray-400">
+                Check browser console for errors. Common causes:
+              </p>
+              <ul className="text-gray-400 mt-2 ml-4 list-disc space-y-1">
+                <li>Missing or incorrect <code className="bg-surface-600 px-1 rounded">.env</code> variables</li>
+                <li>Supabase project URL/key mismatch</li>
+                <li>Database schema not applied</li>
+              </ul>
+            </div>
+
+            <div className="bg-surface-700 rounded-lg p-4">
+              <p className="text-white font-medium mb-2">Check your Supabase setup</p>
+              <p className="text-gray-400">
+                In SQL Editor, verify your profile exists:
+              </p>
+              <pre className="bg-surface-600 rounded p-2 mt-2 text-xs text-gray-300 overflow-x-auto">
+SELECT * FROM public.profiles;</pre>
+            </div>
+          </div>
+        </div>
+
         {/* CTA */}
         <div className="text-center">
           <button

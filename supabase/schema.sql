@@ -41,8 +41,12 @@ CREATE TABLE IF NOT EXISTS public.points_log (
 
 -- 4. AUTO-GENERATE EMPLOYEE ID (Trigger)
 -- This automatically creates IDs like AV-2026-001, AV-2026-002
+-- SECURITY DEFINER allows the function to bypass RLS when counting profiles
 CREATE OR REPLACE FUNCTION public.generate_employee_id()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
     new_id TEXT;
     user_count INTEGER;
@@ -95,6 +99,11 @@ CREATE POLICY "Directors can manage all profiles"
       WHERE id = auth.uid() AND role = 'Director'
     )
   );
+
+CREATE POLICY "Users can update their own profile"
+  ON public.profiles FOR UPDATE
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Admins can create User profiles"
   ON public.profiles FOR INSERT

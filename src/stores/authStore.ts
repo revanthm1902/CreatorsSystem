@@ -58,14 +58,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     set({ user: data.user });
-    await get().fetchProfile();
     
-    const profile = get().profile;
-    set({ loading: false });
+    // Fetch profile and check if it exists
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError || !profileData) {
+      // Profile doesn't exist - sign out and show error
+      await supabase.auth.signOut();
+      set({ user: null, profile: null, loading: false });
+      return { 
+        error: 'Profile not found. Please contact your administrator to complete your account setup.', 
+        requiresPasswordReset: false 
+      };
+    }
+
+    set({ profile: profileData, loading: false });
     
     return { 
       error: null, 
-      requiresPasswordReset: profile?.is_temporary_password ?? false 
+      requiresPasswordReset: profileData.is_temporary_password ?? false 
     };
   },
 

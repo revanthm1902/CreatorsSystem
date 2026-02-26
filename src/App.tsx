@@ -12,14 +12,14 @@ import { DashboardPage } from './components/dashboard/DashboardPage';
 import { ProtectedRoute } from './components/routing/ProtectedRoute';
 
 function App() {
-  const { initialize, initialized, loading, user, profile } = useAuthStore();
+  const { initialize, initialized, user, profile } = useAuthStore();
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Show loading state
-  if (!initialized || loading) {
+  // Only show loading during initial auth check, not during login
+  if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-900">
         <div className="text-center">
