@@ -8,6 +8,13 @@ export interface Profile {
   role: UserRole;
   total_tokens: number;
   is_temporary_password: boolean;
+  // Personal info fields
+  date_of_birth: string | null;
+  email: string | null;
+  phone: string | null;
+  linkedin_url: string | null;
+  github_url: string | null;
+  resume_url: string | null;
   created_at: string;
   updated_at: string;
 }

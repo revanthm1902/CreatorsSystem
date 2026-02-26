@@ -7,6 +7,7 @@ import { SetupGuidePage } from './pages/SetupGuidePage';
 import { LeaderboardPage } from './pages/LeaderboardPage';
 import { UsersPage } from './pages/UsersPage';
 import { TasksPage } from './pages/TasksPage';
+import { ProfileSettingsPage } from './pages/ProfileSettingsPage';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { ProtectedRoute } from './components/routing/ProtectedRoute';
@@ -25,13 +26,13 @@ function App() {
         className="min-h-screen flex items-center justify-center"
         style={{ backgroundColor: 'var(--bg-main)' }}
       >
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg btn-glow animate-pulse">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <p className="font-medium" style={{ color: 'var(--text-muted)' }}>Loading Creators System...</p>
+        <div className="text-center animate-scale-in">
+          <img 
+            src="/icon.png" 
+            alt="Creators Logo" 
+            className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-xl logo-animate"
+          />
+          <p className="font-medium animate-pulse-soft" style={{ color: 'var(--text-muted)' }}>Loading Creators System...</p>
         </div>
       </div>
     );
@@ -73,6 +74,7 @@ function App() {
         >
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/settings" element={<ProfileSettingsPage />} />
           <Route
             path="/tasks"
             element={

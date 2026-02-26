@@ -13,8 +13,20 @@ import {
   ChevronRight,
   Sun,
   Moon,
+  Settings,
   type LucideIcon,
 } from 'lucide-react';
+
+// Brand logo component
+function BrandLogo({ className = "w-11 h-11" }: { className?: string }) {
+  return (
+    <img 
+      src="/icon.png" 
+      alt="Creators Logo" 
+      className={`${className} rounded-xl object-cover logo-animate`}
+    />
+  );
+}
 
 interface NavItem {
   to: string;
@@ -28,16 +40,19 @@ const navItemsByRole: Record<UserRole, NavItem[]> = {
     { to: '/tasks', icon: ClipboardList, label: 'All Tasks' },
     { to: '/users', icon: Users, label: 'Manage Users' },
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+    { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   Admin: [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/tasks', icon: ClipboardList, label: 'Tasks' },
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+    { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   User: [
     { to: '/dashboard', icon: LayoutDashboard, label: 'My Tasks' },
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+    { to: '/settings', icon: Settings, label: 'Settings' },
   ],
 };
 
@@ -55,7 +70,7 @@ export function Sidebar() {
 
   return (
     <aside 
-      className="w-72 flex flex-col h-screen sticky top-0 border-r"
+      className="w-72 flex flex-col h-screen sticky top-0 border-r animate-fade-in"
       style={{ 
         backgroundColor: 'var(--bg-card)', 
         borderColor: 'var(--border-color)' 
@@ -64,11 +79,9 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-6 border-b" style={{ borderColor: 'var(--border-color)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-lg btn-glow">
-            <Zap className="w-6 h-6 text-white" />
-          </div>
+          <BrandLogo className="w-12 h-12 shadow-lg" />
           <div>
-            <h1 className="text-lg font-bold gradient-text">Creators</h1>
+            <h1 className="text-xl font-bold gradient-text">Creators</h1>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>AryVerse System</p>
           </div>
         </div>
@@ -76,26 +89,27 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1.5">
-        {navItems.map((item) => (
+        {navItems.map((item, index) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all group ${
+              `nav-item flex items-center gap-3 px-4 py-3 rounded-xl transition-all group stagger-item ${
                 isActive
-                  ? 'bg-primary text-white shadow-lg btn-glow'
-                  : ''
+                  ? 'bg-gradient-to-r from-primary to-primary-hover text-white shadow-lg'
+                  : 'hover:bg-[var(--bg-elevated)]'
               }`
             }
-            style={({ isActive }) => 
-              isActive ? {} : { color: 'var(--text-secondary)' }
-            }
+            style={({ isActive }) => ({ 
+              color: isActive ? undefined : 'var(--text-secondary)',
+              animationDelay: `${index * 0.05}s`
+            })}
           >
             {({ isActive }) => (
               <>
-                <item.icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:text-primary'}`} />
+                <item.icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? '' : 'group-hover:text-primary'}`} />
                 <span className="font-medium">{item.label}</span>
-                <ChevronRight className={`w-4 h-4 ml-auto transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+                <ChevronRight className={`w-4 h-4 ml-auto transition-all ${isActive ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'}`} />
               </>
             )}
           </NavLink>
@@ -106,7 +120,7 @@ export function Sidebar() {
       <div className="px-4 pb-2">
         <button
           onClick={toggleTheme}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+          className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
           style={{ 
             backgroundColor: 'var(--bg-elevated)',
             color: 'var(--text-secondary)'

@@ -3,6 +3,16 @@ import { supabase } from '../lib/supabase';
 import type { Profile } from '../types/database';
 import type { User } from '@supabase/supabase-js';
 
+interface ProfileUpdateData {
+  full_name?: string;
+  date_of_birth?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  resume_url?: string | null;
+}
+
 interface AuthState {
   user: User | null;
   profile: Profile | null;
@@ -11,6 +21,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error: string | null; requiresPasswordReset: boolean }>;
   signOut: () => Promise<void>;
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
+  updateProfile: (data: ProfileUpdateData) => Promise<{ error: string | null }>;
   fetchProfile: () => Promise<void>;
   initialize: () => Promise<void>;
 }
@@ -107,6 +118,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await get().fetchProfile();
     }
 
+    return { error: null };
+  },
+
+  updateProfile: async (data: ProfileUpdateData) => {
+    const { user } = get();
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(data)
+      .eq('id', user.id);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    await get().fetchProfile();
     return { error: null };
   },
 

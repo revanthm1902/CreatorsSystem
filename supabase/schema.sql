@@ -9,9 +9,24 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   role TEXT NOT NULL DEFAULT 'User' CHECK (role IN ('Director', 'Admin', 'User')),
   total_tokens INTEGER DEFAULT 0,
   is_temporary_password BOOLEAN DEFAULT TRUE,
+  -- Personal info fields
+  date_of_birth DATE,
+  email TEXT,
+  phone TEXT,
+  linkedin_url TEXT,
+  github_url TEXT,
+  resume_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration: Add new columns to existing profiles table
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS date_of_birth DATE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS linkedin_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS github_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS resume_url TEXT;
 
 -- 2. Create tasks table
 CREATE TABLE IF NOT EXISTS public.tasks (
