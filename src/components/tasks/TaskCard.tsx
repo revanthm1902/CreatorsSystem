@@ -1,0 +1,116 @@
+import { useState } from 'react';
+import { format } from 'date-fns';
+import type { Task } from '../../types/database';
+import { TaskStatusBadge } from './TaskStatusBadge';
+import { TaskCountdown } from './TaskCountdown';
+import { useTaskStore } from '../../stores/taskStore';
+import { useAuthStore } from '../../stores/authStore';
+import { Zap, CheckCircle, XCircle, Send } from 'lucide-react';
+
+interface TaskCardProps {
+  task: Task;
+  showActions?: boolean;
+  isAdminView?: boolean;
+}
+
+export function TaskCard({ task, showActions = true, isAdminView = false }: TaskCardProps) {
+  const [loading, setLoading] = useState(false);
+  const { updateTaskStatus, approveTask, rejectTask } = useTaskStore();
+  const { profile } = useAuthStore();
+
+  const handleMarkDone = async () => {
+    setLoading(true);
+    await updateTaskStatus(task.id, 'Under Review', new Date().toISOString());
+    setLoading(false);
+  };
+
+  const handleApprove = async () => {
+    setLoading(true);
+    await approveTask(task.id, task.assigned_to, task.tokens, task.deadline);
+    setLoading(false);
+  };
+
+  const handleReject = async () => {
+    setLoading(true);
+    await rejectTask(task.id);
+    setLoading(false);
+  };
+
+  const canMarkDone = profile?.role === 'User' && task.status === 'Pending';
+  const canReview = isAdminView && task.status === 'Under Review';
+
+  return (
+    <div className="bg-surface-800 border border-surface-600 rounded-xl p-6 hover:border-primary/30 transition-all">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-white mb-2">{task.title}</h3>
+          <p className="text-gray-400 text-sm line-clamp-2">{task.description}</p>
+        </div>
+        <TaskStatusBadge status={task.status} />
+      </div>
+
+      <div className="flex items-center justify-between border-t border-surface-600 pt-4 mt-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 text-accent">
+            <Zap className="w-4 h-4" />
+            <span className="font-bold">{task.tokens}</span>
+            <span className="text-xs text-gray-500">tokens</span>
+          </div>
+          <div className="text-sm text-gray-500">
+            Due: {format(new Date(task.deadline), 'MMM d, yyyy h:mm a')}
+          </div>
+        </div>
+
+        <TaskCountdown deadline={task.deadline} status={task.status} />
+      </div>
+
+      {showActions && (
+        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-surface-600">
+          {canMarkDone && (
+            <button
+              onClick={handleMarkDone}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  Mark as Done
+                </>
+              )}
+            </button>
+          )}
+
+          {canReview && (
+            <>
+              <button
+                onClick={handleApprove}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-success hover:bg-success/80 text-white rounded-lg transition-all disabled:opacity-50"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Approve
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-danger hover:bg-danger/80 text-white rounded-lg transition-all disabled:opacity-50"
+              >
+                <XCircle className="w-4 h-4" />
+                Reject
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
