@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { 
   User, 
@@ -16,6 +16,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+import type { Profile } from '../types/database';
+
 interface FormData {
   full_name: string;
   date_of_birth: string;
@@ -26,18 +28,23 @@ interface FormData {
   resume_url: string;
 }
 
+function getInitialFormData(profile: Profile | null): FormData {
+  return {
+    full_name: profile?.full_name || '',
+    date_of_birth: profile?.date_of_birth || '',
+    email: profile?.email || '',
+    phone: profile?.phone || '',
+    linkedin_url: profile?.linkedin_url || '',
+    github_url: profile?.github_url || '',
+    resume_url: profile?.resume_url || '',
+  };
+}
+
 export function ProfileSettingsPage() {
   const { profile, updateProfile, updatePassword, fetchProfile } = useAuthStore();
+  const initializedRef = useRef(false);
   
-  const [formData, setFormData] = useState<FormData>({
-    full_name: '',
-    date_of_birth: '',
-    email: '',
-    phone: '',
-    linkedin_url: '',
-    github_url: '',
-    resume_url: '',
-  });
+  const [formData, setFormData] = useState<FormData>(() => getInitialFormData(profile));
 
   const [passwords, setPasswords] = useState({
     newPassword: '',
@@ -54,17 +61,13 @@ export function ProfileSettingsPage() {
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Sync form data when profile loads for the first time
   useEffect(() => {
-    if (profile) {
-      setFormData({
-        full_name: profile.full_name || '',
-        date_of_birth: profile.date_of_birth || '',
-        email: profile.email || '',
-        phone: profile.phone || '',
-        linkedin_url: profile.linkedin_url || '',
-        github_url: profile.github_url || '',
-        resume_url: profile.resume_url || '',
-      });
+    if (profile && !initializedRef.current) {
+      initializedRef.current = true;
+      const newData = getInitialFormData(profile);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormData(newData);
     }
   }, [profile]);
 

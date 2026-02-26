@@ -3,6 +3,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useTaskStore } from '../../stores/taskStore';
 import { TaskCard } from '../tasks/TaskCard';
 import { CreateTaskModal } from '../tasks/CreateTaskModal';
+import { ActivityFeed } from './ActivityFeed';
 import {
   Plus,
   ClipboardList,
@@ -42,8 +43,8 @@ export function AdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Task Management</h1>
-          <p className="text-gray-400 mt-1">Create and manage tasks for your team</p>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Task Management</h1>
+          <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Create and manage tasks for your team</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -63,17 +64,27 @@ export function AdminDashboard() {
         <StatPill icon={XCircle} label="Rejected" value={stats.rejected} color="danger" active={statusFilter === 'Rejected'} onClick={() => setStatusFilter('Rejected')} />
       </div>
 
-      {/* Tasks */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredTasks.map((task) => (
-          <TaskCard key={task.id} task={task} isAdminView />
-        ))}
-        {filteredTasks.length === 0 && (
-          <div className="col-span-2 text-center py-12 text-gray-500">
-            <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No tasks found</p>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Tasks Column */}
+        <div className="xl:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {filteredTasks.map((task) => (
+              <TaskCard key={task.id} task={task} isAdminView />
+            ))}
+            {filteredTasks.length === 0 && (
+              <div className="col-span-2 text-center py-12" style={{ color: 'var(--text-muted)' }}>
+                <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No tasks found</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Activity Feed Column */}
+        <div className="xl:col-span-1">
+          <ActivityFeed showPostForm maxItems={20} />
+        </div>
       </div>
 
       <CreateTaskModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
@@ -101,16 +112,21 @@ function StatPill({ icon: Icon, label, value, color, active, onClick }: StatPill
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all border ${
         active
-          ? 'bg-primary text-white'
-          : 'bg-surface-800 border border-surface-600 hover:border-primary/30'
+          ? 'bg-primary text-white border-primary'
+          : 'hover:border-primary/30'
       }`}
+      style={!active ? {
+        backgroundColor: 'var(--bg-card)',
+        borderColor: 'var(--border-color)',
+        color: 'var(--text-primary)'
+      } : undefined}
     >
       <Icon className={`w-5 h-5 ${!active && color ? colorClasses[color] : ''}`} />
       <div className="text-left">
         <p className="text-lg font-bold">{value}</p>
-        <p className="text-xs opacity-70">{label}</p>
+        <p className="text-xs" style={{ color: active ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>{label}</p>
       </div>
     </button>
   );

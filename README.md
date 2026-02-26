@@ -24,19 +24,23 @@ Creators System is an open-source task management platform built for AryVerse. I
 
 - **Role-Based Access Control** - Director, Admin, and User roles with hierarchical permissions
 - **Task Management** - Create, assign, and track tasks with deadlines and token rewards
+- **Director Approval Workflow** - Tasks created by Admins require Director approval before becoming visible to Users
 - **Token System** - Points awarded for completing tasks on time
+- **Real-time Activity Feed** - Live updates for user additions, task assignments, completions, and custom announcements
 - **Real-time Updates** - Live task status updates via Supabase Realtime
 - **Leaderboard** - Visual ranking of users based on accumulated tokens
+- **Light/Dark Theme** - Toggle between light and dark modes
 - **Auto Employee IDs** - Unique IDs generated automatically (e.g., `AV-2026-001`)
 - **Secure Onboarding** - Temporary password with forced reset on first login
+- **Profile Settings** - Users can update personal info, links, and passwords
 
 ### User Roles
 
 | Role | Capabilities |
 |------|--------------|
-| **Director** | Full system access, manage all users, view analytics |
-| **Admin** | Create/assign tasks, set deadlines & tokens, approve/reject work |
-| **User** | View assigned tasks, submit completed work, track tokens |
+| **Director** | Full system access, manage all users (including Admins), approve Admin-created tasks, post announcements |
+| **Admin** | Create/assign tasks, set deadlines & tokens, approve/reject user submissions, post announcements |
+| **User** | View assigned tasks, submit completed work, track tokens, view activity feed |
 
 ## Tech Stack
 
@@ -131,7 +135,7 @@ Creators System is an open-source task management platform built for AryVerse. I
 ```
 src/
 ├── components/
-│   ├── dashboard/      # Role-specific dashboards
+│   ├── dashboard/      # Role-specific dashboards, ActivityFeed
 │   ├── layout/         # Sidebar, DashboardLayout
 │   ├── routing/        # ProtectedRoute
 │   └── tasks/          # TaskCard, TaskCountdown, CreateTaskModal
@@ -141,13 +145,16 @@ src/
 │   ├── LoginPage.tsx
 │   ├── SetupGuidePage.tsx   # In-app setup instructions
 │   ├── ResetPasswordPage.tsx
+│   ├── ProfileSettingsPage.tsx
 │   ├── LeaderboardPage.tsx
 │   ├── UsersPage.tsx
 │   └── TasksPage.tsx
 ├── stores/             # Zustand state management
 │   ├── authStore.ts
 │   ├── taskStore.ts
-│   └── userStore.ts
+│   ├── userStore.ts
+│   ├── activityStore.ts
+│   └── themeStore.ts
 ├── types/
 │   └── database.ts     # TypeScript types
 └── App.tsx
@@ -164,10 +171,24 @@ User submits work → Under Review
        ↓
 Admin approves → Completed (tokens awarded if on time)
        or
-Admin rejects → Rejected (no tokens)
+Admin rejects → Rejected (no tokens, task returns to Pending)
 ```
 
 **Note:** Tasks created by Directors are auto-approved and immediately visible to Users.
+
+## Activity Feed
+
+The Activity Feed provides real-time visibility into team actions:
+
+| Event Type | Description |
+|------------|-------------|
+| `user_added` | When a new team member is added |
+| `task_assigned` | When a task is created and assigned |
+| `task_marked_done` | When a user submits their work |
+| `task_approved` | When an admin approves completed work |
+| `task_rejected` | When an admin rejects a submission |
+| `director_approved_task` | When a director approves a pending task |
+| `custom_message` | Announcements posted by Directors/Admins |
 
 ## Production Deployment
 
@@ -257,6 +278,8 @@ Contributions are what make the open source community amazing! Any contributions
 - [ ] Add export functionality (CSV/PDF)
 - [ ] Create API documentation
 - [x] Director approval workflow for admin-created tasks *(Implemented!)*
+- [x] Real-time activity feed with custom announcements *(Implemented!)*
+- [x] Profile settings page *(Implemented!)*
 
 ### Code Style
 

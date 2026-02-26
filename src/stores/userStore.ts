@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import type { Profile } from '../types/database';
+import type { Profile, ActivityLogInsert } from '../types/database';
+
+// Helper function to log activity
+async function logActivity(activity: ActivityLogInsert) {
+  try {
+    await supabase.from('activity_log').insert(activity);
+  } catch (err) {
+    console.error('Failed to log activity:', err);
+  }
+}
 
 interface UserState {
   users: Profile[];
@@ -10,7 +19,7 @@ interface UserState {
   lastFetch: number;
   fetchUsers: (force?: boolean) => Promise<void>;
   fetchLeaderboard: (force?: boolean) => Promise<void>;
-  createUser: (email: string, password: string, fullName: string, role: 'Admin' | 'User') => Promise<{ error: string | null; employeeId?: string }>;
+  createUser: (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string) => Promise<{ error: string | null; employeeId?: string }>;
   deleteUser: (userId: string) => Promise<{ error: string | null }>;
   reset: () => void;
 }
@@ -79,7 +88,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
   },
 
-  createUser: async (email: string, password: string, fullName: string, role: 'Admin' | 'User') => {
+  createUser: async (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string) => {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -115,6 +124,15 @@ export const useUserStore = create<UserState>((set, get) => ({
     if (profileError) {
       return { error: profileError.message };
     }
+
+    // Log activity
+    await logActivity({
+      actor_id: actorId,
+      action_type: 'user_added',
+      target_user_id: authData.user.id,
+      task_id: null,
+      message: `${actorName} added ${fullName} as ${role}`,
+    });
 
     // Force refresh users list
     await get().fetchUsers(true);

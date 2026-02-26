@@ -200,6 +200,47 @@ CREATE TRIGGER set_tasks_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
--- 12. Enable realtime for tasks
+-- 12. Activity Feed table for real-time updates
+CREATE TABLE IF NOT EXISTS public.activity_log (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  actor_id UUID REFERENCES public.profiles(id) NOT NULL, -- Who performed the action
+  action_type TEXT NOT NULL CHECK (action_type IN (
+    'user_added', 'task_created', 'task_assigned', 'task_completed', 
+    'task_marked_done', 'task_approved', 'task_rejected', 
+    'director_approved_task', 'custom_message'
+  )),
+  target_user_id UUID REFERENCES public.profiles(id), -- Optional: affected user
+  task_id UUID REFERENCES public.tasks(id), -- Optional: related task
+  message TEXT NOT NULL, -- Human-readable message
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for quick time-based queries
+CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON public.activity_log(created_at DESC);
+
+-- Enable RLS on activity_log
+ALTER TABLE public.activity_log ENABLE ROW LEVEL SECURITY;
+
+-- Everyone can view activity
+CREATE POLICY "Authenticated users can view activity"
+  ON public.activity_log FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Directors and Admins can insert activity (including custom messages)
+CREATE POLICY "Directors and Admins can insert activity"
+  ON public.activity_log FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('Director', 'Admin')
+    )
+  );
+
+-- Enable realtime for activity_log
+ALTER PUBLICATION supabase_realtime ADD TABLE public.activity_log;
+
+-- 13. Enable realtime for tasks
 ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
 

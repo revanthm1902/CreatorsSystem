@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { useTaskStore } from '../../stores/taskStore';
 import { TaskCard } from '../tasks/TaskCard';
+import { ActivityFeed } from './ActivityFeed';
 import { ClipboardList, Zap, CheckCircle, Clock } from 'lucide-react';
 
 export function UserDashboard() {
@@ -31,8 +32,8 @@ export function UserDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">My Tasks</h1>
-          <p className="text-gray-400 mt-1">
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>My Tasks</h1>
+          <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
             Welcome back, {profile?.full_name}
           </p>
         </div>
@@ -51,39 +52,50 @@ export function UserDashboard() {
         <StatCard icon={CheckCircle} label="Completed" value={stats.completed} color="success" />
       </div>
 
-      {/* Pending Tasks */}
-      {pendingTasks.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-warning" />
-            Tasks To Complete
-          </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {pendingTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Tasks Column */}
+        <div className="xl:col-span-2 space-y-6">
+          {/* Pending Tasks */}
+          {pendingTasks.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <Clock className="w-5 h-5 text-warning" />
+                Tasks To Complete
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {pendingTasks.map((task) => (
+                  <TaskCard key={task.id} task={task} />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Other Tasks */}
-      {otherTasks.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-white mb-4">Other Tasks</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {otherTasks.map((task) => (
-              <TaskCard key={task.id} task={task} showActions={false} />
-            ))}
-          </div>
-        </div>
-      )}
+          {/* Other Tasks */}
+          {otherTasks.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Other Tasks</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {otherTasks.map((task) => (
+                  <TaskCard key={task.id} task={task} showActions={false} />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {tasks.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No tasks assigned to you yet</p>
+          {tasks.length === 0 && (
+            <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
+              <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No tasks assigned to you yet</p>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Activity Feed Column */}
+        <div className="xl:col-span-1">
+          <ActivityFeed compact maxItems={15} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -103,14 +115,17 @@ function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
   };
 
   return (
-    <div className="bg-surface-800 border border-surface-600 rounded-xl p-4">
+    <div 
+      className="rounded-xl p-4 border"
+      style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
+    >
       <div className="flex items-center gap-3">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color ? colorClasses[color] : 'bg-primary/10 text-primary'}`}>
           <Icon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-xl font-bold text-white">{value}</p>
-          <p className="text-xs text-gray-400">{label}</p>
+          <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</p>
         </div>
       </div>
     </div>

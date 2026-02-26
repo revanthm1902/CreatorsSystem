@@ -19,26 +19,30 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
   const { profile } = useAuthStore();
 
   const handleMarkDone = async () => {
+    if (!profile) return;
     setLoading(true);
-    await updateTaskStatus(task.id, 'Under Review', new Date().toISOString());
+    await updateTaskStatus(task.id, 'Under Review', new Date().toISOString(), profile.id);
     setLoading(false);
   };
 
   const handleApprove = async () => {
+    if (!profile) return;
     setLoading(true);
-    await approveTask(task.id, task.assigned_to, task.tokens, task.deadline);
+    await approveTask(task.id, task.assigned_to, task.tokens, task.deadline, profile.id);
     setLoading(false);
   };
 
   const handleReject = async () => {
+    if (!profile) return;
     setLoading(true);
-    await rejectTask(task.id);
+    await rejectTask(task.id, profile.id);
     setLoading(false);
   };
 
   const handleDirectorApprove = async () => {
+    if (!profile) return;
     setLoading(true);
-    await approveTaskByDirector(task.id);
+    await approveTaskByDirector(task.id, profile.id);
     setLoading(false);
   };
 
