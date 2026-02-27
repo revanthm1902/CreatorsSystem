@@ -7,10 +7,14 @@ interface ActivityState {
   loading: boolean;
   initialized: boolean;
   lastFetch: number;
+  unreadCount: number;
+  toastActivity: ActivityLog | null;
   fetchActivities: (force?: boolean) => Promise<void>;
   logActivity: (activity: ActivityLogInsert) => Promise<void>;
   postCustomMessage: (actorId: string, message: string) => Promise<void>;
   subscribeToActivities: () => () => void;
+  markAllRead: () => void;
+  clearToast: () => void;
   reset: () => void;
 }
 
@@ -21,6 +25,8 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   loading: false,
   initialized: false,
   lastFetch: 0,
+  unreadCount: 0,
+  toastActivity: null,
 
   fetchActivities: async (force = false) => {
     const state = get();
@@ -97,6 +103,8 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
           if (data) {
             set((state) => ({
               activities: [data as ActivityLog, ...state.activities].slice(0, 50),
+              unreadCount: state.unreadCount + 1,
+              toastActivity: data as ActivityLog,
             }));
           }
         }
@@ -108,8 +116,16 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     };
   },
 
+  markAllRead: () => {
+    set({ unreadCount: 0 });
+  },
+
+  clearToast: () => {
+    set({ toastActivity: null });
+  },
+
   reset: () => {
-    set({ activities: [], loading: false, initialized: false, lastFetch: 0 });
+    set({ activities: [], loading: false, initialized: false, lastFetch: 0, unreadCount: 0, toastActivity: null });
   },
 }));
 
