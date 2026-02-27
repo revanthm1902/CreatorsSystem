@@ -2,12 +2,31 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { ActivityLog, ActivityLogInsert } from '../types/database';
 
+const LAST_READ_KEY = 'activity_last_read_at';
+
+function getLastReadAt(): string | null {
+  try {
+    return localStorage.getItem(LAST_READ_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setLastReadAt(timestamp: string) {
+  try {
+    localStorage.setItem(LAST_READ_KEY, timestamp);
+  } catch {
+    // localStorage unavailable
+  }
+}
+
 interface ActivityState {
   activities: ActivityLog[];
   loading: boolean;
   initialized: boolean;
   lastFetch: number;
   unreadCount: number;
+  lastReadAt: string | null;
   toastActivity: ActivityLog | null;
   fetchActivities: (force?: boolean) => Promise<void>;
   logActivity: (activity: ActivityLogInsert) => Promise<void>;
@@ -26,6 +45,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   initialized: false,
   lastFetch: 0,
   unreadCount: 0,
+  lastReadAt: getLastReadAt(),
   toastActivity: null,
 
   fetchActivities: async (force = false) => {
@@ -49,11 +69,18 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       .limit(50);
 
     if (!error && data) {
+      const activities = data as ActivityLog[];
+      const lastRead = get().lastReadAt;
+      const unreadCount = lastRead
+        ? activities.filter((a) => new Date(a.created_at) > new Date(lastRead)).length
+        : activities.length;
+
       set({ 
-        activities: data as ActivityLog[], 
+        activities, 
         loading: false,
         initialized: true,
-        lastFetch: Date.now()
+        lastFetch: Date.now(),
+        unreadCount,
       });
     } else {
       set({ loading: false, initialized: true });
@@ -117,7 +144,16 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   },
 
   markAllRead: () => {
-    set({ unreadCount: 0 });
+    const activities = get().activities;
+    if (activities.length > 0) {
+      const latestTimestamp = activities[0].created_at;
+      setLastReadAt(latestTimestamp);
+      set({ unreadCount: 0, lastReadAt: latestTimestamp });
+    } else {
+      const now = new Date().toISOString();
+      setLastReadAt(now);
+      set({ unreadCount: 0, lastReadAt: now });
+    }
   },
 
   clearToast: () => {
@@ -125,7 +161,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   },
 
   reset: () => {
-    set({ activities: [], loading: false, initialized: false, lastFetch: 0, unreadCount: 0, toastActivity: null });
+    set({ activities: [], loading: false, initialized: false, lastFetch: 0, unreadCount: 0, lastReadAt: getLastReadAt(), toastActivity: null });
   },
 }));
 

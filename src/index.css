@@ -56,6 +56,18 @@
   100% { transform: translateX(-50%) translateY(100%); opacity: 0; }
 }
 
+/* Bell ring animation for unread notifications */
+@keyframes bell-ring {
+  0%   { transform: rotate(0deg); }
+  5%   { transform: rotate(14deg); }
+  10%  { transform: rotate(-12deg); }
+  15%  { transform: rotate(10deg); }
+  20%  { transform: rotate(-8deg); }
+  25%  { transform: rotate(5deg); }
+  30%  { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
 body {
   background-color: var(--bg-main);
   color: var(--text-primary);

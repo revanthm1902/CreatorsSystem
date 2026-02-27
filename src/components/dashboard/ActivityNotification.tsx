@@ -60,15 +60,22 @@ export function ActivityButton() {
     <>
       <button
         onClick={handleOpen}
-        className="relative p-2.5 rounded-xl transition-all hover:bg-primary/10"
-        style={{ color: 'var(--text-secondary)' }}
-        title="Activity"
+        className={`relative p-2.5 rounded-xl transition-all hover:bg-primary/10 ${
+          unreadCount > 0 ? 'animate-[bell-ring_2s_ease-in-out_infinite]' : ''
+        }`}
+        style={{ color: unreadCount > 0 ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+        title={unreadCount > 0 ? `${unreadCount} new notification${unreadCount > 1 ? 's' : ''}` : 'Activity'}
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 flex items-center justify-center text-[11px] font-bold text-white bg-danger rounded-full leading-none">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
+          <>
+            {/* Ping ring */}
+            <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 rounded-full bg-danger animate-ping opacity-40" />
+            {/* Badge */}
+            <span className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 flex items-center justify-center text-[11px] font-bold text-white bg-danger rounded-full leading-none">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          </>
         )}
       </button>
 
@@ -186,9 +193,15 @@ function ActivityPopup({ onClose }: { onClose: () => void }) {
               <p className="text-sm">No activity yet</p>
             </div>
           ) : (
-            activities.map((activity) => (
-              <PopupActivityItem key={activity.id} activity={activity} />
-            ))
+            activities.map((activity) => {
+              const lastRead = useActivityStore.getState().lastReadAt;
+              const isUnread = lastRead
+                ? new Date(activity.created_at) > new Date(lastRead)
+                : false;
+              return (
+                <PopupActivityItem key={activity.id} activity={activity} isUnread={isUnread} />
+              );
+            })
           )}
         </div>
       </div>
@@ -196,7 +209,7 @@ function ActivityPopup({ onClose }: { onClose: () => void }) {
   );
 }
 
-function PopupActivityItem({ activity }: { activity: ActivityLog }) {
+function PopupActivityItem({ activity, isUnread }: { activity: ActivityLog; isUnread: boolean }) {
   const Icon = actionIcons[activity.action_type] || Bell;
   const colorClass = actionColors[activity.action_type] || 'bg-gray-500/20 text-gray-500';
   const actorName = activity.actor?.full_name || 'Someone';
@@ -204,9 +217,14 @@ function PopupActivityItem({ activity }: { activity: ActivityLog }) {
 
   return (
     <div
-      className="flex items-start gap-3 p-3 rounded-xl transition-colors"
-      style={{ backgroundColor: 'var(--bg-elevated)' }}
+      className={`flex items-start gap-3 p-3 rounded-xl transition-colors relative ${
+        isUnread ? 'ring-1 ring-primary/30' : ''
+      }`}
+      style={{ backgroundColor: isUnread ? 'var(--bg-card)' : 'var(--bg-elevated)' }}
     >
+      {isUnread && (
+        <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary animate-pulse" />
+      )}
       <div className={`shrink-0 p-2 rounded-lg ${colorClass}`}>
         <Icon className="w-4 h-4" />
       </div>
