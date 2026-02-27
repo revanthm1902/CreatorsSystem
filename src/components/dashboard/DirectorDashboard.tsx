@@ -55,7 +55,7 @@ export function DirectorDashboard() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-primary to-primary-hover text-white rounded-xl transition-all shadow-lg btn-glow hover:scale-105 active:scale-95 font-medium"
+          className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all font-medium"
         >
           <Plus className="w-5 h-5" />
           Create Task
@@ -134,9 +134,9 @@ export function DirectorDashboard() {
               style={{ backgroundColor: 'var(--bg-elevated)' }}
             >
               <span className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold text-lg ${
-                index === 0 ? 'bg-linear-to-br from-yellow-400 to-orange-500 text-white shadow-lg' :
-                index === 1 ? 'bg-linear-to-br from-gray-300 to-gray-400 text-white shadow-lg' :
-                index === 2 ? 'bg-linear-to-br from-orange-400 to-orange-600 text-white shadow-lg' :
+                index === 0 ? 'bg-yellow-500 text-white' :
+                index === 1 ? 'bg-gray-400 text-white' :
+                index === 2 ? 'bg-orange-500 text-white' :
                 'bg-primary/20 text-primary'
               }`}>
                 {index + 1}

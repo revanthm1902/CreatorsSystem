@@ -18,6 +18,7 @@ interface TaskState {
   lastFetch: number;
   fetchTasks: (userId?: string, role?: string, force?: boolean) => Promise<void>;
   createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at'>, creatorRole: string) => Promise<{ error: string | null }>;
+  editTask: (taskId: string, updates: { title: string; description: string; deadline: string; tokens: number; assigned_to: string }, actorId: string, actorRole: string) => Promise<{ error: string | null }>;
   updateTaskStatus: (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string) => Promise<{ error: string | null }>;
   approveTask: (taskId: string, userId: string, tokens: number, deadline: string, actorId: string) => Promise<{ error: string | null }>;
   rejectTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
@@ -103,6 +104,57 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       target_user_id: task.assigned_to,
       task_id: data.id,
       message: `${actorName} assigned task "${task.title}" to ${targetName}`,
+    });
+
+    return { error: null };
+  },
+
+  editTask: async (taskId: string, updates: { title: string; description: string; deadline: string; tokens: number; assigned_to: string }, actorId: string, actorRole: string) => {
+    // Editing a task resets director_approved — Directors' edits are auto-approved,
+    // Admins' edits require Director re-approval
+    const directorApproved = actorRole === 'Director';
+
+    const updateData = {
+      title: updates.title,
+      description: updates.description,
+      deadline: new Date(updates.deadline).toISOString(),
+      tokens: updates.tokens,
+      assigned_to: updates.assigned_to,
+      director_approved: directorApproved,
+      status: 'Pending' as TaskStatus,
+      submitted_at: null,
+      approved_at: null,
+    };
+
+    const { error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', taskId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === taskId ? { ...t, ...updateData } : t
+      ),
+    }));
+
+    // Log activity
+    const task = get().tasks.find(t => t.id === taskId);
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', actorId)
+      .single();
+
+    await logActivity({
+      actor_id: actorId,
+      action_type: 'task_assigned',
+      target_user_id: updates.assigned_to,
+      task_id: taskId,
+      message: `${profile?.full_name || 'Someone'} edited task "${updates.title}"${!directorApproved ? ' (pending director re-approval)' : ''}`,
     });
 
     return { error: null };

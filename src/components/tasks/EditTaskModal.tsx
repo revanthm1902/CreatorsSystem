@@ -1,32 +1,56 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save, Calendar, Zap } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
 import { useUserStore } from '../../stores/userStore';
 import { useAuthStore } from '../../stores/authStore';
+import type { Task } from '../../types/database';
 
-interface CreateTaskModalProps {
+interface EditTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
+  task: Task;
 }
 
-export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [tokens, setTokens] = useState(10);
+function formatDeadlineForInput(isoDate: string): string {
+  const d = new Date(isoDate);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description || '');
+  const [assignedTo, setAssignedTo] = useState(task.assigned_to);
+  const [deadline, setDeadline] = useState(formatDeadlineForInput(task.deadline));
+  const [tokens, setTokens] = useState(task.tokens);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { createTask } = useTaskStore();
+  const { editTask } = useTaskStore();
   const { users, fetchUsers } = useUserStore();
   const { profile } = useAuthStore();
 
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
+      // Reset form to match latest task data when modal opens
     }
   }, [isOpen, fetchUsers]);
+
+  // Sync form fields when the task prop changes (e.g., modal reopened for a different task)
+  useEffect(() => {
+    setTitle(task.title);
+    setDescription(task.description || '');
+    setAssignedTo(task.assigned_to);
+    setDeadline(formatDeadlineForInput(task.deadline));
+    setTokens(task.tokens);
+    setError('');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.id]);
 
   const userOptions = users.filter((u) => u.role === 'User');
 
@@ -43,33 +67,30 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
     }
 
     setLoading(true);
-    const result = await createTask({
-      title,
-      description,
-      assigned_to: assignedTo,
-      created_by: profile.id,
-      deadline: new Date(deadline).toISOString(),
-      tokens,
-      status: 'Pending',
-      director_approved: false, // Will be set by store based on role
-    }, profile.role);
+    const result = await editTask(
+      task.id,
+      {
+        title,
+        description,
+        deadline,
+        tokens,
+        assigned_to: assignedTo,
+      },
+      profile.id,
+      profile.role
+    );
     setLoading(false);
 
     if (result.error) {
       setError(result.error);
     } else {
-      setTitle('');
-      setDescription('');
-      setAssignedTo('');
-      setDeadline('');
-      setTokens(10);
       onClose();
     }
   };
 
   if (!isOpen) return null;
 
-  // Compute minimum datetime (current time formatted for datetime-local input)
+  // Compute minimum datetime (current time)
   const minDateTime = (() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -84,7 +105,12 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-surface-800 rounded-2xl border border-surface-600 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-surface-600">
-          <h2 className="text-xl font-bold text-white">Create New Task</h2>
+          <div>
+            <h2 className="text-xl font-bold text-white">Edit Task</h2>
+            {profile?.role === 'Admin' && (
+              <p className="text-xs text-amber-400 mt-1">Editing will require Director re-approval</p>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
@@ -197,7 +223,7 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
               ) : (
                 <>
                   <Save className="w-5 h-5" />
-                  Create Task
+                  Save Changes
                 </>
               )}
             </button>

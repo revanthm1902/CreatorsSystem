@@ -5,7 +5,8 @@ import { TaskStatusBadge } from './TaskStatusBadge';
 import { TaskCountdown } from './TaskCountdown';
 import { useTaskStore } from '../../stores/taskStore';
 import { useAuthStore } from '../../stores/authStore';
-import { Zap, CheckCircle, XCircle, Send, ShieldCheck, Clock, X, Calendar, ClipboardList } from 'lucide-react';
+import { Zap, CheckCircle, XCircle, Send, ShieldCheck, Clock, X, Calendar, ClipboardList, Pencil } from 'lucide-react';
+import { EditTaskModal } from './EditTaskModal';
 
 interface TaskCardProps {
   task: Task;
@@ -157,6 +158,7 @@ function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps) {
 export function TaskCard({ task, showActions = true, isAdminView = false }: TaskCardProps) {
   const [loading, setLoading] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const { updateTaskStatus, approveTask, rejectTask, approveTaskByDirector } = useTaskStore();
   const { profile } = useAuthStore();
 
@@ -192,6 +194,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
   const canReview = isAdminView && task.status === 'Under Review';
   const canDirectorApprove = profile?.role === 'Director' && !task.director_approved && task.status === 'Pending';
   const isPendingDirectorApproval = !task.director_approved && task.status === 'Pending';
+  const canEdit = (profile?.role === 'Admin' || profile?.role === 'Director') && task.status === 'Pending';
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't open modal if clicking on buttons
@@ -264,16 +267,26 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
         </div>
 
         {/* Actions Section */}
-        {showActions && (canMarkDone || canReview || canDirectorApprove || isPendingDirectorApproval) && (
+        {showActions && (canMarkDone || canReview || canDirectorApprove || isPendingDirectorApproval || canEdit) && (
           <div 
             className="px-5 py-4 flex flex-wrap items-center gap-3"
             style={{ borderTop: '1px solid var(--border-color)' }}
           >
+            {canEdit && (
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium border"
+                style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-elevated)' }}
+              >
+                <Pencil className="w-4 h-4" />
+                <span>Edit</span>
+              </button>
+            )}
             {canMarkDone && (
               <button
                 onClick={handleMarkDone}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-primary to-primary-hover text-white rounded-xl transition-all disabled:opacity-50 font-medium shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all disabled:opacity-50 font-medium"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -291,7 +304,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
                 <button
                   onClick={handleApprove}
                   disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-success hover:bg-success/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-success hover:bg-success/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -305,7 +318,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
                 <button
                   onClick={handleReject}
                   disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
                 >
                   <XCircle className="w-4 h-4" />
                   <span>Reject</span>
@@ -317,7 +330,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
               <button
                 onClick={handleDirectorApprove}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl transition-all disabled:opacity-50 font-medium shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -345,6 +358,13 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
         task={task} 
         isOpen={showDetail} 
         onClose={() => setShowDetail(false)} 
+      />
+
+      {/* Edit Modal */}
+      <EditTaskModal
+        task={task}
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
       />
     </>
   );

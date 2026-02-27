@@ -101,44 +101,22 @@ body {
   box-shadow: 0 4px 12px var(--shadow-color), 0 2px 4px var(--shadow-color);
 }
 
-/* Gradient text */
+/* Gradient text - replaced with solid color */
 .gradient-text {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #22d3ee 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradient-shift 3s ease infinite;
+  color: var(--color-primary);
 }
 
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% center; }
-  50% { background-position: 100% center; }
-}
-
-/* Button glow effect */
+/* Button hover effect */
 .btn-glow {
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
 }
 
 .btn-glow:hover {
-  box-shadow: 0 6px 25px rgba(99, 102, 241, 0.5);
-  transform: translateY(-1px);
+  opacity: 0.9;
 }
 
 .btn-glow:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
-}
-
-/* Light mode button glow - less intense */
-.light .btn-glow {
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25);
-}
-
-.light .btn-glow:hover {
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+  opacity: 0.8;
 }
 
 /* Smooth page transitions */
@@ -195,57 +173,44 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
-/* Stat card gradient backgrounds */
+/* Stat card backgrounds */
 .stat-gradient-1 {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(99, 102, 241, 0.03) 100%);
+  background: rgba(99, 102, 241, 0.08);
 }
 
 .stat-gradient-2 {
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.12) 0%, rgba(34, 211, 238, 0.03) 100%);
+  background: rgba(34, 211, 238, 0.08);
 }
 
 .stat-gradient-3 {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.03) 100%);
+  background: rgba(16, 185, 129, 0.08);
 }
 
 .stat-gradient-4 {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.03) 100%);
+  background: rgba(245, 158, 11, 0.08);
 }
 
-/* Light mode stat gradients - more visible */
+/* Light mode stat backgrounds */
 .light .stat-gradient-1 {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0.02) 100%);
+  background: rgba(99, 102, 241, 0.06);
 }
 
 .light .stat-gradient-2 {
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.08) 0%, rgba(34, 211, 238, 0.02) 100%);
+  background: rgba(34, 211, 238, 0.06);
 }
 
 .light .stat-gradient-3 {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%);
+  background: rgba(16, 185, 129, 0.06);
 }
 
 .light .stat-gradient-4 {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.02) 100%);
+  background: rgba(245, 158, 11, 0.06);
 }
 
 /* Sidebar nav item hover effect */
 .nav-item {
   position: relative;
   overflow: hidden;
-}
-
-.nav-item::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
-  transform: translateX(-100%);
-  transition: transform 0.3s ease;
-}
-
-.nav-item:hover::before {
-  transform: translateX(100%);
 }
 
 /* Logo animation */

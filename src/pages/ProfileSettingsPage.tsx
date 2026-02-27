@@ -143,7 +143,7 @@ export function ProfileSettingsPage() {
         style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
       >
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
             <User className="w-8 h-8 text-white" />
           </div>
           <div>
@@ -340,7 +340,7 @@ export function ProfileSettingsPage() {
             <button
               type="submit"
               disabled={profileLoading}
-              className="btn-glow px-6 py-3 bg-linear-to-r from-primary to-accent text-white rounded-xl font-medium flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+              className="px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium flex items-center gap-2 transition-all disabled:opacity-50"
             >
               {profileLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
