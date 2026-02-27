@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save, Calendar, Zap } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
 import { useUserStore } from '../../stores/userStore';

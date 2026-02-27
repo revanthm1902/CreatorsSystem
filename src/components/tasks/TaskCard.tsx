@@ -327,20 +327,30 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
             )}
 
             {canDirectorApprove && (
-              <button
-                onClick={handleDirectorApprove}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Approve for Users</span>
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDirectorApprove}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Approve for Users</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleReject}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>Reject</span>
+                </button>
+              </div>
             )}
 
             {isPendingDirectorApproval && profile?.role === 'Admin' && (

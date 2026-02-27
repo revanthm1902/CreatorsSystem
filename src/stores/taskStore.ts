@@ -142,7 +142,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }));
 
     // Log activity
-    const task = get().tasks.find(t => t.id === taskId);
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name')

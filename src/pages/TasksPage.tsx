@@ -18,18 +18,20 @@ export function TasksPage() {
     return () => unsubscribe();
   }, [fetchTasks, subscribeToTasks, profile?.id, profile?.role]);
 
+  const isAdmin = profile?.role === 'Director' || profile?.role === 'Admin';
+  const isDirector = profile?.role === 'Director';
+
   // Tasks pending director approval (for Director view)
   const pendingApprovalTasks = tasks.filter((t) => !t.director_approved && t.status === 'Pending');
   
-  // Regular tasks (approved by director or created by director)
-  const approvedTasks = tasks.filter((t) => t.director_approved || profile?.role === 'User');
+  // Regular tasks
+  const approvedTasks = isAdmin
+    ? tasks.filter(t => !(isDirector && !t.director_approved && t.status === 'Pending'))
+    : tasks.filter((t) => t.director_approved);
 
   const filteredTasks = statusFilter === 'All'
     ? approvedTasks
     : approvedTasks.filter((t) => t.status === statusFilter);
-
-  const isAdmin = profile?.role === 'Director' || profile?.role === 'Admin';
-  const isDirector = profile?.role === 'Director';
 
   if (!initialized && loading) {
     return (
