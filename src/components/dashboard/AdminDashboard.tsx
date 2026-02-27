@@ -3,7 +3,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useTaskStore } from '../../stores/taskStore';
 import { TaskCard } from '../tasks/TaskCard';
 import { CreateTaskModal } from '../tasks/CreateTaskModal';
-import { ActivityFeed } from './ActivityFeed';
+
 import {
   Plus,
   ClipboardList,
@@ -64,27 +64,17 @@ export function AdminDashboard() {
         <StatPill icon={XCircle} label="Rejected" value={stats.rejected} color="danger" active={statusFilter === 'Rejected'} onClick={() => setStatusFilter('Rejected')} />
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Tasks Column */}
-        <div className="xl:col-span-2">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredTasks.map((task) => (
-              <TaskCard key={task.id} task={task} isAdminView />
-            ))}
-            {filteredTasks.length === 0 && (
-              <div className="col-span-2 text-center py-12" style={{ color: 'var(--text-muted)' }}>
-                <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No tasks found</p>
-              </div>
-            )}
+      {/* Tasks Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {filteredTasks.map((task) => (
+          <TaskCard key={task.id} task={task} isAdminView />
+        ))}
+        {filteredTasks.length === 0 && (
+          <div className="col-span-full text-center py-12" style={{ color: 'var(--text-muted)' }}>
+            <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No tasks found</p>
           </div>
-        </div>
-
-        {/* Activity Feed Column */}
-        <div className="xl:col-span-1">
-          <ActivityFeed showPostForm maxItems={20} />
-        </div>
+        )}
       </div>
 
       <CreateTaskModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />

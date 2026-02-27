@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { useTaskStore } from '../../stores/taskStore';
 import { TaskCard } from '../tasks/TaskCard';
-import { ActivityFeed } from './ActivityFeed';
+
 import { ClipboardList, Zap, CheckCircle, Clock } from 'lucide-react';
 
 export function UserDashboard() {
@@ -52,49 +52,41 @@ export function UserDashboard() {
         <StatCard icon={CheckCircle} label="Completed" value={stats.completed} color="success" />
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Tasks Column */}
-        <div className="xl:col-span-2 space-y-6">
-          {/* Pending Tasks */}
-          {pendingTasks.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                <Clock className="w-5 h-5 text-warning" />
-                Tasks To Complete
-              </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {pendingTasks.map((task) => (
-                  <TaskCard key={task.id} task={task} />
-                ))}
-              </div>
+      {/* Tasks */}
+      <div className="space-y-6">
+        {/* Pending Tasks */}
+        {pendingTasks.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <Clock className="w-5 h-5 text-warning" />
+              Tasks To Complete
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {pendingTasks.map((task) => (
+                <TaskCard key={task.id} task={task} />
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Other Tasks */}
-          {otherTasks.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Other Tasks</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {otherTasks.map((task) => (
-                  <TaskCard key={task.id} task={task} showActions={false} />
-                ))}
-              </div>
+        {/* Other Tasks */}
+        {otherTasks.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Other Tasks</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {otherTasks.map((task) => (
+                <TaskCard key={task.id} task={task} showActions={false} />
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {tasks.length === 0 && (
-            <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
-              <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No tasks assigned to you yet</p>
-            </div>
-          )}
-        </div>
-
-        {/* Activity Feed Column */}
-        <div className="xl:col-span-1">
-          <ActivityFeed compact maxItems={15} />
-        </div>
+        {tasks.length === 0 && (
+          <div className="text-center py-12" style={{ color: 'var(--text-muted)' }}>
+            <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No tasks assigned to you yet</p>
+          </div>
+        )}
       </div>
     </div>
   );

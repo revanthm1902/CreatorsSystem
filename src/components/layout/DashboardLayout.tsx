@@ -6,19 +6,12 @@ export function DashboardLayout() {
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: 'var(--bg-main)' }}>
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-auto">
-        {/* Top Bar */}
-        <header
-          className="sticky top-0 z-30 flex items-center justify-end px-8 py-3 border-b"
-          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
-        >
+      <main className="flex-1 overflow-auto p-8">
+        <div className="float-right sticky top-4 z-40 ml-4">
           <ActivityButton />
-        </header>
-
-        <main className="flex-1 p-8">
-          <Outlet />
-        </main>
-      </div>
+        </div>
+        <Outlet />
+      </main>
 
       {/* Toast notification for new activities */}
       <ActivityToast />

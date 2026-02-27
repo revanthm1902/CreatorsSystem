@@ -4,7 +4,7 @@ import { useTaskStore } from '../../stores/taskStore';
 import { useUserStore } from '../../stores/userStore';
 import { TaskCard } from '../tasks/TaskCard';
 import { CreateTaskModal } from '../tasks/CreateTaskModal';
-import { ActivityFeed } from './ActivityFeed';
+
 import {
   Plus,
   ClipboardList,
@@ -169,9 +169,6 @@ export function DirectorDashboard() {
           )}
         </div>
       </div>
-
-      {/* Activity Feed */}
-      <ActivityFeed showPostForm maxItems={25} />
 
       <CreateTaskModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
     </div>
