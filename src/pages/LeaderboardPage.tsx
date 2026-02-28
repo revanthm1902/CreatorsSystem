@@ -116,9 +116,10 @@ export function LeaderboardPage() {
             </div>
           ))}
           {leaderboard.length === 0 && (
-            <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>
-              <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No rankings yet</p>
+            <div className="p-10 sm:p-16 text-center" style={{ color: 'var(--text-muted)' }}>
+              <Trophy className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 opacity-40" />
+              <p className="text-base sm:text-lg font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>It's yet to begin!</p>
+              <p className="text-sm">No one has earned tokens yet. Complete tasks to climb the leaderboard!</p>
             </div>
           )}
         </div>

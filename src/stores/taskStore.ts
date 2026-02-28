@@ -251,8 +251,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const deadlineDate = new Date(deadline);
     const approvedAt = now.toISOString();
     
-    // Calculate tokens: full tokens if on time, 0 if late
-    const tokensAwarded = now <= deadlineDate ? tokens : 0;
+    // Token calculation:
+    //   On time → full tokens + 20% bonus (rounded up)
+    //   Late → half tokens, no bonus
+    const isOnTime = now <= deadlineDate;
+    const bonusTokens = isOnTime ? Math.ceil(tokens * 0.2) : 0;
+    const baseTokens = isOnTime ? tokens : Math.ceil(tokens * 0.5);
+    const tokensAwarded = baseTokens + bonusTokens;
 
     const task = get().tasks.find(t => t.id === taskId);
 
@@ -267,11 +272,15 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
 
     // Log points
+    const reason = isOnTime
+      ? `Task completed on time (+${bonusTokens} bonus)`
+      : 'Task completed late (half tokens, no bonus)';
+
     const { error: logError } = await supabase.from('points_log').insert({
       user_id: userId,
       task_id: taskId,
       tokens_awarded: tokensAwarded,
-      reason: tokensAwarded > 0 ? 'Task completed on time' : 'Task completed late - no tokens awarded',
+      reason,
     });
 
     if (logError) {
@@ -306,12 +315,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       const actorName = profiles?.find(p => p.id === actorId)?.full_name || 'Someone';
       const targetName = profiles?.find(p => p.id === userId)?.full_name || 'a user';
 
+      const tokenMsg = isOnTime
+        ? `+${tokens} tokens + ${bonusTokens} bonus`
+        : `+${baseTokens} tokens (late, no bonus)`;
+
       await logActivity({
         actor_id: actorId,
         action_type: 'task_approved',
         target_user_id: userId,
         task_id: taskId,
-        message: `${actorName} approved task "${task.title}" for ${targetName}${tokensAwarded > 0 ? ` (+${tokensAwarded} tokens)` : ' (late - no tokens)'}`,
+        message: `${actorName} approved task "${task.title}" for ${targetName} (${tokenMsg})`,
       });
     }
 

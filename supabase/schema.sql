@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS public.activity_log (
   action_type TEXT NOT NULL CHECK (action_type IN (
     'user_added', 'task_created', 'task_assigned', 'task_completed', 
     'task_marked_done', 'task_approved', 'task_rejected', 'task_reassigned',
-    'director_approved_task', 'custom_message', 'task_deleted'
+    'director_approved_task', 'custom_message', 'task_deleted', 'tokens_given'
   )),
   target_user_id UUID REFERENCES public.profiles(id), -- Optional: affected user
   task_id UUID REFERENCES public.tasks(id), -- Optional: related task
@@ -332,7 +332,7 @@ ALTER TABLE public.activity_log DROP CONSTRAINT IF EXISTS activity_log_action_ty
 ALTER TABLE public.activity_log ADD CONSTRAINT activity_log_action_type_check CHECK (action_type IN (
   'user_added', 'task_created', 'task_assigned', 'task_completed', 
   'task_marked_done', 'task_approved', 'task_rejected', 'task_reassigned',
-  'director_approved_task', 'custom_message', 'task_deleted', 'password_reset_request'
+  'director_approved_task', 'custom_message', 'task_deleted', 'password_reset_request', 'tokens_given'
 ));
 
 -- Enable realtime for password_reset_requests

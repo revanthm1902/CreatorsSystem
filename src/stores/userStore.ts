@@ -36,6 +36,7 @@ interface UserState {
   fetchUsers: (force?: boolean) => Promise<void>;
   fetchLeaderboard: (force?: boolean) => Promise<void>;
   createUser: (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string) => Promise<{ error: string | null; employeeId?: string }>;
+  giveTokens: (targetUserId: string, amount: number, reason: string, actorId: string, actorName: string, targetName: string) => Promise<{ error: string | null }>;
   deleteUser: (userId: string) => Promise<{ error: string | null }>;
   fetchPasswordResetRequests: () => Promise<void>;
   resetUserPassword: (userId: string, newPassword: string, requestId: string, actorId: string, actorName: string, userEmail: string) => Promise<{ error: string | null }>;
@@ -91,10 +92,12 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
     
     try {
+      // Include both Users and Admins, only those with > 0 tokens
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'User')
+        .in('role', ['User', 'Admin'])
+        .gt('total_tokens', 0)
         .order('total_tokens', { ascending: false })
         .limit(50);
       
@@ -193,6 +196,37 @@ export const useUserStore = create<UserState>((set, get) => ({
       return { error: null, employeeId: result.employee_id };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An unexpected error occurred while creating the user';
+      return { error: message };
+    }
+  },
+
+  giveTokens: async (targetUserId: string, amount: number, reason: string, actorId: string, actorName: string, targetName: string) => {
+    try {
+      const { error: rpcError } = await supabase.rpc('increment_tokens', {
+        user_id: targetUserId,
+        amount,
+      });
+
+      if (rpcError) {
+        return { error: rpcError.message };
+      }
+
+      // Log activity (fire-and-forget)
+      logActivity({
+        actor_id: actorId,
+        action_type: 'tokens_given',
+        target_user_id: targetUserId,
+        task_id: null,
+        message: `${actorName} gave ${amount} tokens to ${targetName}${reason ? ` — ${reason}` : ''}`,
+      }).catch(() => {});
+
+      // Refresh users & leaderboard in background
+      get().fetchUsers(true).catch(() => {});
+      get().fetchLeaderboard(true).catch(() => {});
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to give tokens';
       return { error: message };
     }
   },

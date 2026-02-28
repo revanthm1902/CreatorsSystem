@@ -58,7 +58,8 @@ export type ActivityType =
   | 'director_approved_task'
   | 'custom_message'
   | 'task_deleted'
-  | 'password_reset_request';
+  | 'password_reset_request'
+  | 'tokens_given';
 
 export type PasswordResetStatus = 'pending' | 'approved' | 'dismissed';
 
