@@ -56,17 +56,17 @@ VALUES (
   };
 
   return (
-    <div className="min-h-screen bg-surface-900 py-12 px-4">
+    <div className="min-h-screen bg-surface-900 py-8 sm:py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center">
-              <Zap className="w-7 h-7 text-primary" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/20 rounded-xl flex items-center justify-center">
+              <Zap className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold text-white">Creators System</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Creators System</h1>
           </div>
-          <p className="text-gray-400 text-lg">Setup Guide & Login Instructions</p>
+          <p className="text-gray-400 text-base sm:text-lg">Setup Guide & Login Instructions</p>
         </div>
 
         {/* Warning Banner */}
@@ -82,13 +82,13 @@ VALUES (
         </div>
 
         {/* Role Overview */}
-        <div className="bg-surface-800 rounded-xl border border-surface-600 p-6 mb-8">
-          <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+        <div className="bg-surface-800 rounded-xl border border-surface-600 p-4 sm:p-6 mb-8">
+          <h2 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center gap-2">
             <Users className="w-5 h-5 text-accent" />
             User Roles Overview
           </h2>
           
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-surface-700 rounded-lg p-4 border border-purple-500/30">
               <div className="flex items-center gap-2 mb-3">
                 <Shield className="w-5 h-5 text-purple-400" />
@@ -148,7 +148,7 @@ VALUES (
                 supabase.com <ExternalLink className="w-3 h-3" />
               </a> and create a new project. Copy your project URL and anon key.
             </p>
-            <div className="bg-surface-700 rounded-lg p-4 font-mono text-sm">
+            <div className="bg-surface-700 rounded-lg p-3 sm:p-4 font-mono text-xs sm:text-sm overflow-x-auto">
               <p className="text-gray-300"># .env file</p>
               <p className="text-green-400">VITE_SUPABASE_URL=https://your-project.supabase.co</p>
               <p className="text-green-400">VITE_SUPABASE_ANON_KEY=your-anon-key-here</p>

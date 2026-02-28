@@ -50,18 +50,18 @@ export function LoginPage() {
 
       <div className="w-full max-w-md relative z-10 animate-scale-in">
         <div 
-          className="card rounded-3xl shadow-2xl p-8"
+          className="card rounded-3xl shadow-2xl p-6 sm:p-8"
           style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
         >
-          <div className="text-center mb-8">
+          <div className="text-center mb-6 sm:mb-8">
             <div className="inline-block mb-4">
               <img 
                 src="/icon.png" 
                 alt="Creators Logo" 
-                className="w-24 h-24 rounded-2xl shadow-xl logo-animate mx-auto"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl shadow-xl logo-animate mx-auto"
               />
             </div>
-            <h1 className="text-3xl font-bold gradient-text">Creators System</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold gradient-text">Creators System</h1>
             <p className="mt-2" style={{ color: 'var(--text-muted)' }}>AryVerse Task & Performance Manager</p>
           </div>
 

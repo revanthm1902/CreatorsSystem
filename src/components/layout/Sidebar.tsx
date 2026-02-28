@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeStore } from '../../stores/themeStore';
 import type { UserRole } from '../../types/database';
@@ -16,6 +16,8 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
+  Menu,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -62,7 +64,24 @@ export function Sidebar() {
   const { profile, signOut } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -71,31 +90,32 @@ export function Sidebar() {
 
   const navItems = profile?.role ? navItemsByRole[profile.role] : [];
 
-  return (
-    <aside 
-      className={`${
-        collapsed ? 'w-20' : 'w-72'
-      } flex flex-col h-screen sticky top-0 border-r animate-fade-in transition-all duration-300`}
-      style={{ 
-        backgroundColor: 'var(--bg-card)', 
-        borderColor: 'var(--border-color)' 
-      }}
-    >
+  const sidebarContent = (
+    <>
       {/* Logo + Collapse toggle */}
       <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-color)' }}>
-        <div className={`flex items-center gap-3 overflow-hidden ${collapsed ? 'justify-center w-full' : ''}`}>
+        <div className={`flex items-center gap-3 overflow-hidden ${collapsed && !mobileOpen ? 'justify-center w-full' : ''}`}>
           <BrandLogo className="w-10 h-10 shrink-0 shadow-lg" />
-          {!collapsed && (
+          {(!collapsed || mobileOpen) && (
             <div className="min-w-0">
               <h1 className="text-lg font-bold gradient-text leading-tight">Creators</h1>
               <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>AryVerse System</p>
             </div>
           )}
         </div>
+        {/* Close button on mobile */}
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="shrink-0 p-1.5 rounded-lg transition-colors hover:bg-primary/10 lg:hidden"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <X className="w-5 h-5" />
+        </button>
+        {/* Collapse button on desktop */}
         {!collapsed && (
           <button
             onClick={() => setCollapsed(true)}
-            className="shrink-0 p-1.5 rounded-lg transition-colors hover:bg-primary/10"
+            className="shrink-0 p-1.5 rounded-lg transition-colors hover:bg-primary/10 hidden lg:block"
             style={{ color: 'var(--text-muted)' }}
             title="Collapse sidebar"
           >
@@ -104,9 +124,9 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Expand button when collapsed */}
-      {collapsed && (
-        <div className="flex justify-center py-2">
+      {/* Expand button when collapsed (desktop only) */}
+      {collapsed && !mobileOpen && (
+        <div className="flex justify-center py-2 hidden lg:flex">
           <button
             onClick={() => setCollapsed(false)}
             className="p-2 rounded-lg transition-colors hover:bg-primary/10"
@@ -119,7 +139,7 @@ export function Sidebar() {
       )}
 
       {/* Navigation */}
-      <nav className={`flex-1 ${collapsed ? 'px-2 py-3' : 'p-4'} space-y-1.5`}>
+      <nav className={`flex-1 ${collapsed && !mobileOpen ? 'px-2 py-3' : 'p-4'} space-y-1.5`}>
         {navItems.map((item, index) => (
           <NavLink
             key={item.to}
@@ -127,7 +147,7 @@ export function Sidebar() {
             end={item.to === '/dashboard'}
             className={({ isActive }) =>
               `nav-item flex items-center ${
-                collapsed ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'
+                collapsed && !mobileOpen ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'
               } rounded-xl transition-all group stagger-item ${
                 isActive
                   ? 'bg-primary text-white'
@@ -138,12 +158,12 @@ export function Sidebar() {
               color: isActive ? undefined : 'var(--text-secondary)',
               animationDelay: `${index * 0.05}s`
             })}
-            title={collapsed ? item.label : undefined}
+            title={collapsed && !mobileOpen ? item.label : undefined}
           >
             {({ isActive }) => (
               <>
                 <item.icon className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? '' : 'group-hover:text-primary'}`} />
-                {!collapsed && <span className="font-medium">{item.label}</span>}
+                {(!collapsed || mobileOpen) && <span className="font-medium">{item.label}</span>}
               </>
             )}
           </NavLink>
@@ -151,24 +171,24 @@ export function Sidebar() {
       </nav>
 
       {/* Theme Toggle */}
-      <div className={`${collapsed ? 'px-2' : 'px-4'} pb-2`}>
+      <div className={`${collapsed && !mobileOpen ? 'px-2' : 'px-4'} pb-2`}>
         <button
           onClick={toggleTheme}
           className={`w-full flex items-center ${
-            collapsed ? 'justify-center px-0 py-3' : 'justify-between px-4 py-3'
+            collapsed && !mobileOpen ? 'justify-center px-0 py-3' : 'justify-between px-4 py-3'
           } rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]`}
           style={{ 
             backgroundColor: 'var(--bg-elevated)',
             color: 'var(--text-secondary)'
           }}
-          title={collapsed ? (theme === 'dark' ? 'Dark Mode' : 'Light Mode') : undefined}
+          title={collapsed && !mobileOpen ? (theme === 'dark' ? 'Dark Mode' : 'Light Mode') : undefined}
         >
-          {!collapsed && (
+          {(!collapsed || mobileOpen) && (
             <span className="text-sm font-medium">
               {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
             </span>
           )}
-          {collapsed ? (
+          {collapsed && !mobileOpen ? (
             theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />
           ) : (
             <div 
@@ -194,15 +214,15 @@ export function Sidebar() {
       </div>
 
       {/* User Profile & Logout */}
-      <div className={`${collapsed ? 'p-2' : 'p-4'} border-t space-y-2`} style={{ borderColor: 'var(--border-color)' }}>
+      <div className={`${collapsed && !mobileOpen ? 'p-2' : 'p-4'} border-t space-y-2`} style={{ borderColor: 'var(--border-color)' }}>
         <div 
-          className={`flex items-center ${collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-4 py-3'} rounded-xl`}
+          className={`flex items-center ${collapsed && !mobileOpen ? 'justify-center px-0 py-2' : 'gap-3 px-4 py-3'} rounded-xl`}
           style={{ backgroundColor: 'var(--bg-elevated)' }}
         >
           <div className="w-9 h-9 bg-primary/15 rounded-full flex items-center justify-center shrink-0">
             <User className="w-4 h-4 text-primary" />
           </div>
-          {!collapsed && (
+          {(!collapsed || mobileOpen) && (
             <>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
@@ -222,14 +242,65 @@ export function Sidebar() {
 
         <button
           onClick={handleSignOut}
-          className={`w-full flex items-center justify-center gap-2 ${collapsed ? 'px-0 py-2' : 'px-4 py-2.5'} rounded-xl transition-all hover:bg-danger/10 hover:text-danger`}
+          className={`w-full flex items-center justify-center gap-2 ${collapsed && !mobileOpen ? 'px-0 py-2' : 'px-4 py-2.5'} rounded-xl transition-all hover:bg-danger/10 hover:text-danger`}
           style={{ color: 'var(--text-muted)' }}
-          title={collapsed ? 'Sign Out' : undefined}
+          title={collapsed && !mobileOpen ? 'Sign Out' : undefined}
         >
           <LogOut className="w-5 h-5" />
-          {!collapsed && <span className="font-medium">Sign Out</span>}
+          {(!collapsed || mobileOpen) && <span className="font-medium">Sign Out</span>}
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger button - fixed at top */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed top-4 left-4 z-50 p-2.5 rounded-xl border shadow-lg lg:hidden"
+        style={{ 
+          backgroundColor: 'var(--bg-card)', 
+          borderColor: 'var(--border-color)',
+          color: 'var(--text-primary)'
+        }}
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile sidebar (overlay) */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 flex flex-col border-r animate-fade-in transition-transform duration-300 lg:hidden ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        style={{ 
+          backgroundColor: 'var(--bg-card)', 
+          borderColor: 'var(--border-color)' 
+        }}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Desktop sidebar (static) */}
+      <aside 
+        className={`${
+          collapsed ? 'w-20' : 'w-72'
+        } hidden lg:flex flex-col h-screen sticky top-0 border-r animate-fade-in transition-all duration-300`}
+        style={{ 
+          backgroundColor: 'var(--bg-card)', 
+          borderColor: 'var(--border-color)' 
+        }}
+      >
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

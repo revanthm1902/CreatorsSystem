@@ -46,16 +46,16 @@ export function DirectorDashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold gradient-text">Director Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold gradient-text">Director Dashboard</h1>
           <p className="mt-1" style={{ color: 'var(--text-muted)' }}>
             Welcome back, {profile?.full_name}
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all font-medium"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all font-medium w-full sm:w-auto"
         >
           <Plus className="w-5 h-5" />
           Create Task
@@ -63,7 +63,7 @@ export function DirectorDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
         <StatCard
           icon={ClipboardList}
           label="Total Tasks"
@@ -201,16 +201,16 @@ function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
 
   return (
     <div 
-      className={`card rounded-2xl p-6 ${gradientClasses[color]} hover:scale-[1.02] transition-transform cursor-default`}
+      className={`card rounded-2xl p-4 sm:p-6 ${gradientClasses[color]} hover:scale-[1.02] transition-transform cursor-default`}
       style={{ borderColor: 'var(--border-color)' }}
     >
-      <div className="flex items-center gap-4">
-        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${iconClasses[color]}`}>
-          <Icon className="w-7 h-7" />
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center ${iconClasses[color]}`}>
+          <Icon className="w-6 h-6 sm:w-7 sm:h-7" />
         </div>
         <div>
-          <p className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</p>
-          <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{label}</p>
+          <p className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</p>
+          <p className="text-xs sm:text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{label}</p>
         </div>
       </div>
     </div>

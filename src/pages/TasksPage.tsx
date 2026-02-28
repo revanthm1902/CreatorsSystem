@@ -43,20 +43,20 @@ export function TasksPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
-            <ClipboardList className="w-8 h-8 text-accent" />
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
+            <ClipboardList className="w-7 h-7 sm:w-8 sm:h-8 text-accent" />
             {isAdmin ? 'All Tasks' : 'My Tasks'}
           </h1>
-          <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
+          <p className="mt-1 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>
             {isAdmin ? 'Manage and review all tasks' : 'View and complete your assigned tasks'}
           </p>
         </div>
         {isAdmin && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all w-full sm:w-auto justify-center"
           >
             <Plus className="w-5 h-5" />
             Create Task
@@ -86,14 +86,14 @@ export function TasksPage() {
       )}
 
       {/* Filter */}
-      <div className="flex items-center gap-2">
-        <Filter className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+        <Filter className="w-5 h-5 shrink-0" style={{ color: 'var(--text-muted)' }} />
         <div className="flex gap-2">
           {(['All', 'Pending', 'Under Review', 'Completed', 'Rejected'] as const).map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                 statusFilter === status
                   ? 'bg-primary text-white'
                   : 'hover:opacity-80'
@@ -107,7 +107,7 @@ export function TasksPage() {
       </div>
 
       {/* Tasks Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {filteredTasks.map((task) => (
           <TaskCard
             key={task.id}

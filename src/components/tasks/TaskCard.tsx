@@ -35,7 +35,7 @@ function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps) {
       >
         {/* Header */}
         <div 
-          className="flex items-start justify-between p-6 gap-4"
+          className="flex items-start justify-between p-4 sm:p-6 gap-4"
           style={{ borderBottom: '1px solid var(--border-color)' }}
         >
           <div className="flex-1 min-w-0">
@@ -57,7 +57,7 @@ function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps) {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
           {/* Description */}
           <div>
             <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
@@ -73,7 +73,7 @@ function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps) {
 
           {/* Details Grid */}
           <div 
-            className="grid grid-cols-2 gap-4 p-4 rounded-xl"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl"
             style={{ backgroundColor: 'var(--bg-elevated)' }}
           >
             <div>
@@ -139,7 +139,7 @@ function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps) {
 
         {/* Footer */}
         <div 
-          className="p-6"
+          className="p-4 sm:p-6"
           style={{ borderTop: '1px solid var(--border-color)' }}
         >
           <button
@@ -234,7 +234,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
 
         {/* Info Section */}
         <div 
-          className="px-5 py-4 flex flex-wrap items-center gap-x-5 gap-y-3"
+          className="px-4 sm:px-5 py-3 sm:py-4 flex flex-wrap items-center gap-x-4 sm:gap-x-5 gap-y-2 sm:gap-y-3"
           style={{ backgroundColor: 'var(--bg-elevated)', borderTop: '1px solid var(--border-color)' }}
         >
           {/* Tokens */}
@@ -269,7 +269,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
         {/* Actions Section */}
         {showActions && (canMarkDone || canReview || canDirectorApprove || isPendingDirectorApproval || canEdit) && (
           <div 
-            className="px-5 py-4 flex flex-wrap items-center gap-3"
+            className="px-4 sm:px-5 py-3 sm:py-4 flex flex-wrap items-center gap-2 sm:gap-3"
             style={{ borderTop: '1px solid var(--border-color)' }}
           >
             {canEdit && (

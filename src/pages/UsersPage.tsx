@@ -56,30 +56,31 @@ export function UsersPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
-            <Users className="w-8 h-8 text-accent" />
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
+            <Users className="w-7 h-7 sm:w-8 sm:h-8 text-accent" />
             User Management
           </h1>
-          <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Manage team members and their roles</p>
+          <p className="mt-1 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>Manage team members and their roles</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all w-full sm:w-auto justify-center"
         >
           <Plus className="w-5 h-5" />
           Add User
         </button>
       </div>
 
-      {/* Users Table */}
+      {/* Users Table (desktop) / Cards (mobile) */}
       <div 
         className="rounded-xl overflow-hidden"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
       >
+        {/* Desktop table header */}
         <div 
-          className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 p-4 text-sm font-medium"
+          className="hidden md:grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 p-4 text-sm font-medium"
           style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
         >
           <span>User</span>
@@ -102,38 +103,75 @@ export function UsersPage() {
             users.map((user) => (
             <div
               key={user.id}
-              className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 p-4 items-center transition-all"
+              className="p-4 transition-all"
               style={{ borderColor: 'var(--border-color)' }}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                  {getRoleIcon(user.role)}
+              {/* Desktop row */}
+              <div className="hidden md:grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                    {getRoleIcon(user.role)}
+                  </div>
+                  <div>
+                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
+                    {user.is_temporary_password && (
+                      <span className="text-xs text-warning">Pending password reset</span>
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
+                  <span className="font-mono text-sm" style={{ color: 'var(--text-secondary)' }}>{user.employee_id}</span>
+                </div>
+                <div>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getRoleBadgeClass(user.role)}`}>
+                    {getRoleIcon(user.role)}
+                    {user.role}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-accent">
+                  <Zap className="w-4 h-4" />
+                  <span className="font-medium">{user.total_tokens}</span>
+                </div>
+                <div className="flex items-center gap-2 justify-end">
+                  {(user.role === 'User' || (canManageAdmins && user.role === 'Admin')) && user.id !== profile?.id && (
+                    <button
+                      onClick={() => handleDeleteUser(user.id)}
+                      className="p-2 hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
+                      style={{ color: 'var(--text-secondary)' }}
+                      title="Delete user"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {/* Mobile card */}
+              <div className="md:hidden flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center shrink-0">
+                  {getRoleIcon(user.role)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0 ${getRoleBadgeClass(user.role)}`}>
+                      {user.role}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{user.employee_id}</span>
+                    <div className="flex items-center gap-1 text-accent text-xs">
+                      <Zap className="w-3 h-3" />
+                      <span className="font-medium">{user.total_tokens}</span>
+                    </div>
+                  </div>
                   {user.is_temporary_password && (
                     <span className="text-xs text-warning">Pending password reset</span>
                   )}
                 </div>
-              </div>
-              <div>
-                <span className="font-mono text-sm" style={{ color: 'var(--text-secondary)' }}>{user.employee_id}</span>
-              </div>
-              <div>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getRoleBadgeClass(user.role)}`}>
-                  {getRoleIcon(user.role)}
-                  {user.role}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 text-accent">
-                <Zap className="w-4 h-4" />
-                <span className="font-medium">{user.total_tokens}</span>
-              </div>
-              <div className="flex items-center gap-2 justify-end">
                 {(user.role === 'User' || (canManageAdmins && user.role === 'Admin')) && user.id !== profile?.id && (
                   <button
                     onClick={() => handleDeleteUser(user.id)}
-                    className="p-2 hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
+                    className="p-2 hover:text-danger hover:bg-danger/10 rounded-lg transition-all shrink-0"
                     style={{ color: 'var(--text-secondary)' }}
                     title="Delete user"
                   >
