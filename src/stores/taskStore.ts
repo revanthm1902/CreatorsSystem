@@ -405,7 +405,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     return { error: null };
   },
 
-  addFeedback: async (taskId: string, feedback: string, actorId: string) => {
+  addFeedback: async (taskId: string, feedback: string, _actorId: string) => {
     const { error } = await supabase
       .from('tasks')
       .update({ admin_feedback: feedback })
