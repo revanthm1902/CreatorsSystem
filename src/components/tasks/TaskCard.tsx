@@ -25,14 +25,16 @@ function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps) {
 
   return (
     <div 
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
       onClick={onClose}
     >
       <div 
-        className="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Pull indicator on mobile */}
+        <div className="modal-pull-indicator sm:hidden" />
         {/* Header */}
         <div 
           className="flex items-start justify-between p-4 sm:p-6 gap-4"
@@ -210,7 +212,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
         onClick={handleCardClick}
       >
         {/* Header Section */}
-        <div className="p-5">
+        <div className="p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex-1 min-w-0">
               <h3 
@@ -234,48 +236,67 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
 
         {/* Info Section */}
         <div 
-          className="px-4 sm:px-5 py-3 sm:py-4 flex flex-wrap items-center gap-x-4 sm:gap-x-5 gap-y-2 sm:gap-y-3"
+          className="px-4 sm:px-5 py-3 sm:py-4"
           style={{ backgroundColor: 'var(--bg-elevated)', borderTop: '1px solid var(--border-color)' }}
         >
-          {/* Tokens */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/10 text-accent">
-              <Zap className="w-4 h-4" />
-              <span className="font-bold text-sm">{task.tokens}</span>
+          {/* Mobile: compact 2-row layout */}
+          <div className="flex flex-col gap-2 sm:hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/10 text-accent">
+                  <Zap className="w-3.5 h-3.5" />
+                  <span className="font-bold text-sm">{task.tokens}</span>
+                </div>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>tokens</span>
+              </div>
+              <TaskCountdown deadline={task.deadline} status={task.status} />
             </div>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>tokens</span>
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                {format(new Date(task.deadline), 'MMM d, yyyy')}
+              </span>
+              <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                {format(new Date(task.deadline), 'h:mm a')}
+              </span>
+            </div>
           </div>
 
-          {/* Divider */}
-          <div className="w-px h-5 hidden sm:block" style={{ backgroundColor: 'var(--border-color)' }} />
-
-          {/* Due Date */}
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              {format(new Date(task.deadline), 'MMM d, yyyy')}
-            </span>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {format(new Date(task.deadline), 'h:mm a')}
-            </span>
-          </div>
-
-          {/* Countdown */}
-          <div className="ml-auto">
-            <TaskCountdown deadline={task.deadline} status={task.status} />
+          {/* Desktop: horizontal layout */}
+          <div className="hidden sm:flex flex-wrap items-center gap-x-5 gap-y-3">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-accent/10 text-accent">
+                <Zap className="w-4 h-4" />
+                <span className="font-bold text-sm">{task.tokens}</span>
+              </div>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>tokens</span>
+            </div>
+            <div className="w-px h-5" style={{ backgroundColor: 'var(--border-color)' }} />
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                {format(new Date(task.deadline), 'MMM d, yyyy')}
+              </span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {format(new Date(task.deadline), 'h:mm a')}
+              </span>
+            </div>
+            <div className="ml-auto">
+              <TaskCountdown deadline={task.deadline} status={task.status} />
+            </div>
           </div>
         </div>
 
         {/* Actions Section */}
         {showActions && (canMarkDone || canReview || canDirectorApprove || isPendingDirectorApproval || canEdit) && (
           <div 
-            className="px-4 sm:px-5 py-3 sm:py-4 flex flex-wrap items-center gap-2 sm:gap-3"
+            className="px-4 sm:px-5 py-3 sm:py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3"
             style={{ borderTop: '1px solid var(--border-color)' }}
           >
             {canEdit && (
               <button
                 onClick={() => setShowEditModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium border"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium border"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-elevated)' }}
               >
                 <Pencil className="w-4 h-4" />
@@ -286,7 +307,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
               <button
                 onClick={handleMarkDone}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all disabled:opacity-50 font-medium"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all disabled:opacity-50 font-medium"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -300,11 +321,11 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
             )}
 
             {canReview && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={handleApprove}
                   disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-success hover:bg-success/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-success hover:bg-success/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -318,7 +339,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
                 <button
                   onClick={handleReject}
                   disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
                 >
                   <XCircle className="w-4 h-4" />
                   <span>Reject</span>
@@ -327,11 +348,11 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
             )}
 
             {canDirectorApprove && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   onClick={handleDirectorApprove}
                   disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -345,7 +366,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
                 <button
                   onClick={handleReject}
                   disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
                 >
                   <XCircle className="w-4 h-4" />
                   <span>Reject</span>
@@ -354,7 +375,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
             )}
 
             {isPendingDirectorApproval && profile?.role === 'Admin' && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 text-amber-600 text-sm font-medium">
+              <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 text-amber-600 text-sm font-medium w-full sm:w-auto">
                 <Clock className="w-4 h-4" />
                 <span>Awaiting Director Approval</span>
               </div>

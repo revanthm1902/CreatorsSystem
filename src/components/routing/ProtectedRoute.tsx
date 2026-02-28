@@ -13,7 +13,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   // Show loading state
   if (!initialized || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-900">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-main)' }}>
         <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     );

@@ -129,28 +129,28 @@ export function ProfileSettingsPage() {
   const labelClasses = "block text-sm font-medium mb-2";
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold gradient-text">Profile Settings</h1>
-        <p style={{ color: 'var(--text-muted)' }} className="mt-2">
+    <div className="p-0 sm:p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
+      <div className="mb-5 sm:mb-8">
+        <h1 className="text-xl sm:text-3xl font-bold gradient-text">Profile Settings</h1>
+        <p style={{ color: 'var(--text-muted)' }} className="mt-1 sm:mt-2 text-sm sm:text-base">
           Manage your personal information and account security
         </p>
       </div>
 
       {/* Employee Info Card */}
       <div 
-        className="card rounded-2xl p-6 mb-6 stagger-item"
+        className="card rounded-2xl p-4 sm:p-6 mb-5 sm:mb-6 stagger-item"
         style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
       >
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
-            <User className="w-8 h-8 text-white" />
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-primary flex items-center justify-center">
+            <User className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-base sm:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
               {profile?.full_name}
             </h2>
-            <p style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs sm:text-base" style={{ color: 'var(--text-muted)' }}>
               {profile?.employee_id} • {profile?.role}
             </p>
           </div>
@@ -160,15 +160,15 @@ export function ProfileSettingsPage() {
       {/* Personal Information Form */}
       <form onSubmit={handleProfileSubmit}>
         <div 
-          className="card rounded-2xl p-6 mb-6 stagger-item"
+          className="card rounded-2xl p-4 sm:p-6 mb-5 sm:mb-6 stagger-item"
           style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', animationDelay: '50ms' }}
         >
-          <h3 className="text-lg font-semibold mb-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+          <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
             <User className="w-5 h-5 text-primary" />
             Personal Information
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
             <div>
               <label className={labelClasses} style={{ color: 'var(--text-secondary)' }}>
                 Full Name *
@@ -336,11 +336,11 @@ export function ProfileSettingsPage() {
             </div>
           )}
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-5 sm:mt-6 flex justify-end">
             <button
               type="submit"
               disabled={profileLoading}
-              className="px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium flex items-center gap-2 transition-all disabled:opacity-50"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium flex items-center gap-2 transition-all disabled:opacity-50 w-full sm:w-auto justify-center"
             >
               {profileLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -356,15 +356,15 @@ export function ProfileSettingsPage() {
       {/* Password Change Form */}
       <form onSubmit={handlePasswordSubmit}>
         <div 
-          className="card rounded-2xl p-6 stagger-item"
+          className="card rounded-2xl p-4 sm:p-6 stagger-item"
           style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', animationDelay: '100ms' }}
         >
-          <h3 className="text-lg font-semibold mb-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+          <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
             <Lock className="w-5 h-5 text-accent" />
             Change Password
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
             <div>
               <label className={labelClasses} style={{ color: 'var(--text-secondary)' }}>
                 New Password
@@ -447,11 +447,11 @@ export function ProfileSettingsPage() {
             </div>
           )}
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-5 sm:mt-6 flex justify-end">
             <button
               type="submit"
               disabled={passwordLoading || !passwords.newPassword || !passwords.confirmPassword}
-              className="px-6 py-3 bg-accent text-white rounded-xl font-medium flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+              className="px-5 sm:px-6 py-2.5 sm:py-3 bg-accent text-white rounded-xl font-medium flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 w-full sm:w-auto justify-center"
             >
               {passwordLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

@@ -102,18 +102,22 @@ export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
   })();
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-surface-800 rounded-2xl border border-surface-600 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-surface-600">
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-y-auto"
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
+      >
+        <div className="modal-pull-indicator sm:hidden" />
+        <div className="flex items-center justify-between p-4 sm:p-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-white">Edit Task</h2>
+            <h2 className="text-lg sm:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Edit Task</h2>
             {profile?.role === 'Admin' && (
               <p className="text-xs text-amber-400 mt-1">Editing will require Director re-approval</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="transition-colors p-1 rounded-lg hover:bg-primary/10"
+            style={{ color: 'var(--text-secondary)' }}
           >
             <X className="w-6 h-6" />
           </button>
@@ -127,7 +131,7 @@ export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               Task Title
             </label>
             <input
@@ -135,33 +139,36 @@ export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-surface-700 border border-surface-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
               placeholder="Enter task title"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               Description
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 bg-surface-700 border border-surface-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
+              style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
               placeholder="Describe the task..."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               Assign To
             </label>
             <select
               value={assignedTo}
               onChange={(e) => setAssignedTo(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-surface-700 border border-surface-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
             >
               <option value="">Select a user</option>
               {userOptions.map((user) => (
@@ -174,7 +181,7 @@ export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                 <Calendar className="w-4 h-4 inline mr-1" />
                 Deadline
               </label>
@@ -184,12 +191,13 @@ export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
                 onChange={(e) => setDeadline(e.target.value)}
                 required
                 min={minDateTime}
-                className="w-full px-4 py-3 bg-surface-700 border border-surface-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                 <Zap className="w-4 h-4 inline mr-1" />
                 Token Value
               </label>
@@ -200,7 +208,8 @@ export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
                 min={0}
                 max={1000}
                 required
-                className="w-full px-4 py-3 bg-surface-700 border border-surface-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
               />
             </div>
           </div>
@@ -209,7 +218,8 @@ export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-surface-700 hover:bg-surface-600 text-gray-300 rounded-lg transition-all"
+              className="flex-1 px-4 py-3 rounded-lg transition-all"
+              style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
             >
               Cancel
             </button>

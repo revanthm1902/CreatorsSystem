@@ -121,16 +121,18 @@ function ActivityPopup({ onClose }: { onClose: () => void }) {
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 bg-black/50 z-50 flex items-start justify-end p-4 pt-16 sm:p-6 sm:pt-20"
+      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-start sm:justify-end p-0 sm:p-6 sm:pt-20"
     >
       <div
-        className="w-full max-w-md rounded-2xl border overflow-hidden flex flex-col"
+        className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border overflow-hidden flex flex-col"
         style={{
           backgroundColor: 'var(--bg-card)',
           borderColor: 'var(--border-color)',
-          maxHeight: 'calc(100vh - 6rem)',
+          maxHeight: 'calc(100vh - 3rem)',
         }}
       >
+        {/* Mobile pull indicator */}
+        <div className="sm:hidden w-10 h-1 rounded-full mx-auto mt-3 mb-1" style={{ backgroundColor: 'var(--border-color)' }} />
         {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-4 shrink-0"
@@ -271,7 +273,7 @@ export function ActivityToast() {
 
   return (
     <div
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-60 w-[90%] max-w-md animate-[toast-lifecycle_3s_ease-in-out_forwards]"
+      className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-60 w-[94%] sm:w-[90%] max-w-md animate-[toast-lifecycle_3s_ease-in-out_forwards]"
     >
       <div
         className="flex items-start gap-3 p-4 rounded-xl border shadow-lg"

@@ -6,7 +6,7 @@ export function DashboardLayout() {
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: 'var(--bg-main)' }}>
       <Sidebar />
-      <main className="flex-1 overflow-auto p-4 pt-16 sm:p-6 sm:pt-16 lg:p-8 lg:pt-8">
+      <main className="flex-1 overflow-auto px-3 py-4 pt-16 sm:px-6 sm:py-6 sm:pt-16 lg:px-8 lg:py-8 lg:pt-8 safe-bottom">
         <div className="float-right sticky top-4 z-40 ml-4">
           <ActivityButton />
         </div>

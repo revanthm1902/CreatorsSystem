@@ -56,7 +56,7 @@ export function LoginPage() {
           <div className="text-center mb-6 sm:mb-8">
             <div className="inline-block mb-4">
               <img 
-                src="/icon.png" 
+                src="/icon.jpeg" 
                 alt="Creators Logo" 
                 className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl shadow-xl logo-animate mx-auto"
               />

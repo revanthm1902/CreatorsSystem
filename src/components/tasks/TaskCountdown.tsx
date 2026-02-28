@@ -53,23 +53,23 @@ export function TaskCountdown({ deadline, status }: TaskCountdownProps) {
   const isUrgent = days === 0 && hours < 6;
 
   return (
-    <div className={`flex items-center gap-2 ${isUrgent ? 'text-warning' : 'text-gray-400'}`}>
+    <div className={`flex items-center gap-2 ${isUrgent ? 'text-warning' : ''}`} style={!isUrgent ? { color: 'var(--text-muted)' } : undefined}>
       <Clock className="w-4 h-4" />
       <div className="flex items-center gap-1 text-sm font-mono">
         {days > 0 && (
           <>
-            <span className="bg-surface-700 px-2 py-1 rounded">{days}d</span>
+            <span className="px-2 py-1 rounded" style={{ backgroundColor: 'var(--bg-elevated)' }}>{days}d</span>
           </>
         )}
-        <span className="bg-surface-700 px-2 py-1 rounded">
+        <span className="px-2 py-1 rounded" style={{ backgroundColor: 'var(--bg-elevated)' }}>
           {String(hours).padStart(2, '0')}
         </span>
         <span>:</span>
-        <span className="bg-surface-700 px-2 py-1 rounded">
+        <span className="px-2 py-1 rounded" style={{ backgroundColor: 'var(--bg-elevated)' }}>
           {String(minutes).padStart(2, '0')}
         </span>
         <span>:</span>
-        <span className="bg-surface-700 px-2 py-1 rounded">
+        <span className="px-2 py-1 rounded" style={{ backgroundColor: 'var(--bg-elevated)' }}>
           {String(seconds).padStart(2, '0')}
         </span>
       </div>

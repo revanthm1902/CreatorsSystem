@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeStore } from '../../stores/themeStore';
 import type { UserRole } from '../../types/database';
@@ -25,7 +25,7 @@ import {
 function BrandLogo({ className = "w-11 h-11" }: { className?: string }) {
   return (
     <img 
-      src="/icon.png" 
+      src="/icon.jpeg" 
       alt="Creators Logo" 
       className={`${className} rounded-xl object-cover logo-animate`}
     />
@@ -64,14 +64,10 @@ export function Sidebar() {
   const { profile, signOut } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
-  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
+  const closeMobileSidebar = useCallback(() => setMobileOpen(false), []);
 
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
@@ -126,7 +122,7 @@ export function Sidebar() {
 
       {/* Expand button when collapsed (desktop only) */}
       {collapsed && !mobileOpen && (
-        <div className="flex justify-center py-2 hidden lg:flex">
+        <div className="justify-center py-2 hidden lg:flex">
           <button
             onClick={() => setCollapsed(false)}
             className="p-2 rounded-lg transition-colors hover:bg-primary/10"
@@ -145,6 +141,7 @@ export function Sidebar() {
             key={item.to}
             to={item.to}
             end={item.to === '/dashboard'}
+            onClick={closeMobileSidebar}
             className={({ isActive }) =>
               `nav-item flex items-center ${
                 collapsed && !mobileOpen ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'
