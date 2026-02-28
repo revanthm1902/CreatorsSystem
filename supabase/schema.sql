@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS public.points_log (
 );
 
 -- 4. AUTO-GENERATE EMPLOYEE ID (Trigger)
--- This automatically creates IDs like AV-2026-001, AV-2026-002
+-- This automatically creates IDs like AV2026001, AV2026002 (AV + current year + 3-digit seq)
 -- SECURITY DEFINER allows the function to bypass RLS when counting profiles
 CREATE OR REPLACE FUNCTION public.generate_employee_id()
 RETURNS TRIGGER 
@@ -73,14 +73,18 @@ AS $$
 DECLARE
     new_id TEXT;
     max_num INTEGER;
+    current_year TEXT;
 BEGIN
-    -- Extract the highest existing number to avoid duplicates after deletions
-    SELECT COALESCE(MAX(CAST(SUBSTRING(employee_id FROM '[0-9]+$') AS INTEGER)), 0)
+    current_year := EXTRACT(YEAR FROM CURRENT_DATE)::TEXT;
+    
+    -- Extract the highest existing sequence number (last 3 digits) to avoid duplicates
+    SELECT COALESCE(MAX(CAST(RIGHT(employee_id, 3) AS INTEGER)), 0)
     INTO max_num
     FROM public.profiles
-    WHERE employee_id IS NOT NULL;
+    WHERE employee_id IS NOT NULL
+      AND employee_id ~ ('^AV' || current_year);
     
-    new_id := 'AV-2026-' || LPAD((max_num + 1)::text, 3, '0');
+    new_id := 'AV' || current_year || LPAD((max_num + 1)::text, 3, '0');
     NEW.employee_id := new_id;
     RETURN NEW;
 END;

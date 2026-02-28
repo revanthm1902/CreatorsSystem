@@ -93,12 +93,14 @@ export const useUserStore = create<UserState>((set, get) => ({
     
     try {
       // Include both Users and Admins, only those with > 0 tokens
+      // Sort by tokens descending, then employee_id ascending as tiebreaker
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .in('role', ['User', 'Admin'])
         .gt('total_tokens', 0)
         .order('total_tokens', { ascending: false })
+        .order('employee_id', { ascending: true })
         .limit(50);
       
       if (!error && data) {

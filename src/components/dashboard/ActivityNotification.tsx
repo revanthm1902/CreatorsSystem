@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Trash2,
   KeyRound,
+  Gift,
 } from 'lucide-react';
 
 const actionIcons: Record<ActivityType, typeof Bell> = {
@@ -32,6 +33,7 @@ const actionIcons: Record<ActivityType, typeof Bell> = {
   custom_message: MessageSquare,
   task_deleted: Trash2,
   password_reset_request: KeyRound,
+  tokens_given: Gift,
 };
 
 const actionColors: Record<ActivityType, string> = {
@@ -47,6 +49,7 @@ const actionColors: Record<ActivityType, string> = {
   custom_message: 'bg-cyan-500/20 text-cyan-500',
   task_deleted: 'bg-rose-500/20 text-rose-500',
   password_reset_request: 'bg-yellow-500/20 text-yellow-500',
+  tokens_given: 'bg-emerald-500/20 text-emerald-500',
 };
 
 /* ────────── Bell Button with Badge ────────── */
