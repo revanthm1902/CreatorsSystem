@@ -140,6 +140,10 @@ export interface Database {
         Args: { p_target_user_id: string };
         Returns: undefined;
       };
+      admin_create_user: {
+        Args: { p_email: string; p_password: string; p_full_name: string; p_role: string };
+        Returns: { user_id: string; employee_id: string };
+      };
     };
     Enums: {
       [_ in never]: never;
