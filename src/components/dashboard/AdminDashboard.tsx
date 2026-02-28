@@ -41,14 +41,14 @@ export function AdminDashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Task Management</h1>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Task Management</h1>
           <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Create and manage tasks for your team</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all w-full sm:w-auto"
         >
           <Plus className="w-5 h-5" />
           Create Task
@@ -56,7 +56,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
         <StatPill icon={ClipboardList} label="Total" value={stats.totalTasks} active={statusFilter === 'All'} onClick={() => setStatusFilter('All')} />
         <StatPill icon={Clock} label="Pending" value={stats.pending} color="warning" active={statusFilter === 'Pending'} onClick={() => setStatusFilter('Pending')} />
         <StatPill icon={Filter} label="Review" value={stats.underReview} color="accent" active={statusFilter === 'Under Review'} onClick={() => setStatusFilter('Under Review')} />

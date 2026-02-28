@@ -129,9 +129,9 @@ export function ProfileSettingsPage() {
   const labelClasses = "block text-sm font-medium mb-2";
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold gradient-text">Profile Settings</h1>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto animate-fade-in">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold gradient-text">Profile Settings</h1>
         <p style={{ color: 'var(--text-muted)' }} className="mt-2">
           Manage your personal information and account security
         </p>

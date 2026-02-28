@@ -30,14 +30,14 @@ export function UserDashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>My Tasks</h1>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>My Tasks</h1>
           <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
             Welcome back, {profile?.full_name}
           </p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent rounded-lg">
+        <div className="flex items-center gap-2 px-4 py-2 bg-accent/10 text-accent rounded-lg w-fit">
           <Zap className="w-5 h-5" />
           <span className="font-bold text-lg">{profile?.total_tokens || 0}</span>
           <span className="text-sm opacity-70">Tokens</span>

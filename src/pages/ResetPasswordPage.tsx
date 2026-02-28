@@ -50,7 +50,7 @@ export function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface-900 px-4">
       <div className="w-full max-w-md">
-        <div className="bg-surface-800 rounded-2xl shadow-2xl p-8 border border-surface-600">
+        <div className="bg-surface-800 rounded-2xl shadow-2xl p-6 sm:p-8 border border-surface-600">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-warning/20 rounded-full mb-4">
               <KeyRound className="w-8 h-8 text-warning" />
