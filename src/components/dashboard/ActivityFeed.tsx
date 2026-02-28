@@ -16,6 +16,7 @@ import {
   RefreshCw,
   RotateCcw,
   Trash2,
+  KeyRound,
 } from 'lucide-react';
 
 const actionIcons: Record<ActivityType, typeof Bell> = {
@@ -30,6 +31,7 @@ const actionIcons: Record<ActivityType, typeof Bell> = {
   director_approved_task: ShieldCheck,
   custom_message: MessageSquare,
   task_deleted: Trash2,
+  password_reset_request: KeyRound,
 };
 
 const actionColors: Record<ActivityType, string> = {
@@ -44,6 +46,7 @@ const actionColors: Record<ActivityType, string> = {
   director_approved_task: 'bg-orange-500/20 text-orange-500',
   custom_message: 'bg-cyan-500/20 text-cyan-500',
   task_deleted: 'bg-rose-500/20 text-rose-500',
+  password_reset_request: 'bg-yellow-500/20 text-yellow-500',
 };
 
 interface ActivityFeedProps {
@@ -83,13 +86,13 @@ export function ActivityFeed({ showPostForm = false, maxItems = 20, compact = fa
 
   return (
     <div 
-      className={`card rounded-2xl ${compact ? 'p-4' : 'p-6'}`}
+      className={`card rounded-2xl ${compact ? 'p-3 sm:p-4' : 'p-4 sm:p-6'}`}
       style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className={`font-semibold flex items-center gap-2 ${compact ? 'text-base' : 'text-lg'}`} style={{ color: 'var(--text-primary)' }}>
-          <Bell className="w-5 h-5 text-accent" />
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h2 className={`font-semibold flex items-center gap-2 ${compact ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`} style={{ color: 'var(--text-primary)' }}>
+          <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
           Activity Feed
         </h2>
         <button
@@ -104,14 +107,14 @@ export function ActivityFeed({ showPostForm = false, maxItems = 20, compact = fa
 
       {/* Post Form (Admin/Director only) */}
       {showPostForm && canPost && (
-        <form onSubmit={handlePostMessage} className="mb-4">
+        <form onSubmit={handlePostMessage} className="mb-3 sm:mb-4">
           <div className="flex gap-2">
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Post an announcement..."
-              className="flex-1 px-4 py-2.5 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-primary/30"
+              className="flex-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-primary/30 text-sm sm:text-base"
               style={{
                 backgroundColor: 'var(--input-bg)',
                 borderColor: 'var(--border-color)',
@@ -122,12 +125,12 @@ export function ActivityFeed({ showPostForm = false, maxItems = 20, compact = fa
             <button
               type="submit"
               disabled={posting || !newMessage.trim()}
-              className="px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all disabled:opacity-50 font-medium"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all disabled:opacity-50 font-medium"
             >
               {posting ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
           </div>
@@ -135,7 +138,7 @@ export function ActivityFeed({ showPostForm = false, maxItems = 20, compact = fa
       )}
 
       {/* Activity List */}
-      <div className={`space-y-3 ${compact ? 'max-h-75' : 'max-h-100'} overflow-y-auto pr-1`}>
+      <div className={`space-y-2 sm:space-y-3 ${compact ? 'max-h-60 sm:max-h-75' : 'max-h-80 sm:max-h-100'} overflow-y-auto`}>
         {loading && activities.length === 0 ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -170,24 +173,24 @@ function ActivityItem({ activity, compact }: ActivityItemProps) {
 
   return (
     <div 
-      className={`flex items-start gap-3 ${compact ? 'p-2' : 'p-3'} rounded-xl transition-all hover:scale-[1.01]`}
+      className={`flex items-start gap-2.5 sm:gap-3 ${compact ? 'p-2 sm:p-2.5' : 'p-2.5 sm:p-3'} rounded-xl transition-all hover:scale-[1.01]`}
       style={{ backgroundColor: 'var(--bg-elevated)' }}
     >
       {/* Icon */}
-      <div className={`shrink-0 p-2 rounded-lg ${colorClass}`}>
-        <Icon className="w-4 h-4" />
+      <div className={`shrink-0 p-1.5 sm:p-2 rounded-lg ${colorClass}`}>
+        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className={`${compact ? 'text-sm' : ''}`} style={{ color: 'var(--text-primary)' }}>
+        <p className={`${compact ? 'text-xs sm:text-sm' : 'text-sm'} leading-relaxed break-words`} style={{ color: 'var(--text-primary)' }}>
           {activity.action_type === 'custom_message' ? (
             <>
               <span className="font-semibold">{actorName}</span>
-              <span className="px-1.5 py-0.5 ml-1 text-xs rounded-md bg-primary/20 text-primary">
+              <span className="px-1 py-0.5 ml-1 text-[10px] sm:text-xs rounded-md bg-primary/20 text-primary">
                 {actorRole}
               </span>
-              <span className="block mt-1" style={{ color: 'var(--text-secondary)' }}>
+              <span className="block mt-1 text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {activity.message}
               </span>
             </>
@@ -195,7 +198,7 @@ function ActivityItem({ activity, compact }: ActivityItemProps) {
             <span>{activity.message}</span>
           )}
         </p>
-        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-[10px] sm:text-xs mt-0.5 sm:mt-1" style={{ color: 'var(--text-muted)' }}>
           {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
         </p>
       </div>

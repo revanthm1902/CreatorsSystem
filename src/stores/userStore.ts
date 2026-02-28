@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import type { Profile, ActivityLogInsert } from '../types/database';
+import type { Profile, ActivityLogInsert, PasswordResetRequest } from '../types/database';
 
 // Helper function to log activity
 async function logActivity(activity: ActivityLogInsert) {
@@ -14,6 +14,7 @@ async function logActivity(activity: ActivityLogInsert) {
 interface UserState {
   users: Profile[];
   leaderboard: Profile[];
+  passwordResetRequests: PasswordResetRequest[];
   loading: boolean;
   initialized: boolean;
   lastFetch: number;
@@ -21,6 +22,9 @@ interface UserState {
   fetchLeaderboard: (force?: boolean) => Promise<void>;
   createUser: (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string) => Promise<{ error: string | null; employeeId?: string }>;
   deleteUser: (userId: string) => Promise<{ error: string | null }>;
+  fetchPasswordResetRequests: () => Promise<void>;
+  resetUserPassword: (userId: string, newPassword: string, requestId: string, actorId: string, actorName: string, userEmail: string) => Promise<{ error: string | null }>;
+  dismissPasswordResetRequest: (requestId: string) => Promise<{ error: string | null }>;
   reset: () => void;
 }
 
@@ -29,6 +33,7 @@ const CACHE_DURATION = 30000; // 30 seconds
 export const useUserStore = create<UserState>((set, get) => ({
   users: [],
   leaderboard: [],
+  passwordResetRequests: [],
   loading: false,
   initialized: false,
   lastFetch: 0,
@@ -89,6 +94,9 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   createUser: async (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string) => {
+    // Save current session before signUp (which can switch sessions)
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -99,6 +107,14 @@ export const useUserStore = create<UserState>((set, get) => ({
         },
       },
     });
+
+    // Restore the original session immediately to prevent session corruption
+    if (currentSession) {
+      await supabase.auth.setSession({
+        access_token: currentSession.access_token,
+        refresh_token: currentSession.refresh_token,
+      });
+    }
 
     if (authError) {
       return { error: authError.message };
@@ -140,10 +156,10 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   deleteUser: async (userId: string) => {
-    const { error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', userId);
+    // Use RPC to properly handle FK constraints and delete auth user
+    const { error } = await supabase.rpc('admin_delete_user', {
+      p_target_user_id: userId,
+    });
 
     if (error) {
       return { error: error.message };
@@ -157,7 +173,77 @@ export const useUserStore = create<UserState>((set, get) => ({
     return { error: null };
   },
 
+  fetchPasswordResetRequests: async () => {
+    const { data, error } = await supabase
+      .from('password_reset_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      set({ passwordResetRequests: data as PasswordResetRequest[] });
+    }
+  },
+
+  resetUserPassword: async (userId: string, newPassword: string, requestId: string, actorId: string, actorName: string, userEmail: string) => {
+    // Call the RPC function to reset the password
+    const { error: rpcError } = await supabase.rpc('admin_reset_user_password', {
+      target_user_id: userId,
+      new_password: newPassword,
+    });
+
+    if (rpcError) {
+      return { error: rpcError.message };
+    }
+
+    // Mark the request as approved
+    await supabase
+      .from('password_reset_requests')
+      .update({
+        status: 'approved',
+        resolved_by: actorId,
+        resolved_at: new Date().toISOString(),
+      })
+      .eq('id', requestId);
+
+    // Log activity
+    await logActivity({
+      actor_id: actorId,
+      action_type: 'password_reset_request',
+      target_user_id: userId,
+      task_id: null,
+      message: `${actorName} reset password for ${userEmail}`,
+    });
+
+    // Refresh requests and users
+    await get().fetchPasswordResetRequests();
+    await get().fetchUsers(true);
+
+    return { error: null };
+  },
+
+  dismissPasswordResetRequest: async (requestId: string) => {
+    const { error } = await supabase
+      .from('password_reset_requests')
+      .update({
+        status: 'dismissed',
+        resolved_at: new Date().toISOString(),
+      })
+      .eq('id', requestId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    // Update local state
+    set((state) => ({
+      passwordResetRequests: state.passwordResetRequests.filter((r) => r.id !== requestId),
+    }));
+
+    return { error: null };
+  },
+
   reset: () => {
-    set({ users: [], leaderboard: [], loading: false, initialized: false, lastFetch: 0 });
+    set({ users: [], leaderboard: [], passwordResetRequests: [], loading: false, initialized: false, lastFetch: 0 });
   },
 }));

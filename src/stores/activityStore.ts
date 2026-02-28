@@ -195,6 +195,8 @@ export function createActivityMessage(
       return `${actorName} approved task "${taskTitle}" for users`;
     case 'custom_message':
       return ''; // Message will be the actual message content
+    case 'password_reset_request':
+      return `${actorName} reset password for ${targetName}`;
     default:
       return 'Activity occurred';
   }

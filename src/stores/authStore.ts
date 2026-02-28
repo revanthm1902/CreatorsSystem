@@ -96,7 +96,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // Always clear state even if signOut API fails (e.g. expired session)
+      console.warn('Sign out API error (state cleared anyway):', e);
+    }
     set({ user: null, profile: null });
   },
 

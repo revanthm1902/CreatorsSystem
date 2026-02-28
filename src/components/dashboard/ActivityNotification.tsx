@@ -16,6 +16,7 @@ import {
   X,
   RotateCcw,
   Trash2,
+  KeyRound,
 } from 'lucide-react';
 
 const actionIcons: Record<ActivityType, typeof Bell> = {
@@ -30,6 +31,7 @@ const actionIcons: Record<ActivityType, typeof Bell> = {
   director_approved_task: ShieldCheck,
   custom_message: MessageSquare,
   task_deleted: Trash2,
+  password_reset_request: KeyRound,
 };
 
 const actionColors: Record<ActivityType, string> = {
@@ -44,6 +46,7 @@ const actionColors: Record<ActivityType, string> = {
   director_approved_task: 'bg-orange-500/20 text-orange-500',
   custom_message: 'bg-cyan-500/20 text-cyan-500',
   task_deleted: 'bg-rose-500/20 text-rose-500',
+  password_reset_request: 'bg-yellow-500/20 text-yellow-500',
 };
 
 /* ────────── Bell Button with Badge ────────── */
@@ -130,25 +133,26 @@ function ActivityPopup({ onClose }: { onClose: () => void }) {
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-start sm:justify-end p-0 sm:p-6 sm:pt-20"
+      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-start sm:justify-end"
     >
       <div
-        className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border overflow-hidden flex flex-col"
+        className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border overflow-hidden flex flex-col sm:m-4 sm:mt-16"
         style={{
           backgroundColor: 'var(--bg-card)',
           borderColor: 'var(--border-color)',
-          maxHeight: 'calc(100vh - 3rem)',
+          height: '85vh',
+          maxHeight: '85vh',
         }}
       >
         {/* Mobile pull indicator */}
-        <div className="sm:hidden w-10 h-1 rounded-full mx-auto mt-3 mb-1" style={{ backgroundColor: 'var(--border-color)' }} />
+        <div className="sm:hidden w-10 h-1 rounded-full mx-auto mt-2.5 mb-1" style={{ backgroundColor: 'var(--border-color)' }} />
         {/* Header */}
         <div
-          className="flex items-center justify-between px-5 py-4 shrink-0"
+          className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 shrink-0"
           style={{ borderBottom: '1px solid var(--border-color)' }}
         >
-          <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-            <Bell className="w-5 h-5 text-accent" />
+          <h2 className="text-base sm:text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
             Activity Center
           </h2>
           <button
@@ -164,7 +168,7 @@ function ActivityPopup({ onClose }: { onClose: () => void }) {
         {canPost && (
           <form
             onSubmit={handlePostMessage}
-            className="px-5 py-3 shrink-0"
+            className="px-4 sm:px-5 py-2.5 sm:py-3 shrink-0"
             style={{ borderBottom: '1px solid var(--border-color)' }}
           >
             <div className="flex gap-2">
@@ -184,7 +188,7 @@ function ActivityPopup({ onClose }: { onClose: () => void }) {
               <button
                 type="submit"
                 disabled={posting || !newMessage.trim()}
-                className="px-3 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50 text-sm font-medium"
+                className="px-3 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50 text-sm font-medium shrink-0"
               >
                 {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
@@ -193,7 +197,7 @@ function ActivityPopup({ onClose }: { onClose: () => void }) {
         )}
 
         {/* Activity List */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-2.5 sm:py-3 space-y-1.5 sm:space-y-2 min-h-0">
           {loading && activities.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -228,26 +232,26 @@ function PopupActivityItem({ activity, isUnread }: { activity: ActivityLog; isUn
 
   return (
     <div
-      className={`flex items-start gap-3 p-3 rounded-xl transition-colors relative ${
+      className={`flex items-start gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl transition-colors relative ${
         isUnread ? 'ring-1 ring-primary/30' : ''
       }`}
       style={{ backgroundColor: isUnread ? 'var(--bg-card)' : 'var(--bg-elevated)' }}
     >
       {isUnread && (
-        <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary animate-pulse" />
+        <span className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 w-2 h-2 rounded-full bg-primary animate-pulse" />
       )}
-      <div className={`shrink-0 p-2 rounded-lg ${colorClass}`}>
-        <Icon className="w-4 h-4" />
+      <div className={`shrink-0 p-1.5 sm:p-2 rounded-lg ${colorClass}`}>
+        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+        <p className="text-xs sm:text-sm leading-relaxed break-words" style={{ color: 'var(--text-primary)' }}>
           {activity.action_type === 'custom_message' ? (
             <>
               <span className="font-semibold">{actorName}</span>
-              <span className="px-1.5 py-0.5 ml-1 text-[10px] rounded-md bg-primary/20 text-primary">
+              <span className="px-1 py-0.5 ml-1 text-[10px] rounded-md bg-primary/20 text-primary">
                 {actorRole}
               </span>
-              <span className="block mt-1" style={{ color: 'var(--text-secondary)' }}>
+              <span className="block mt-1 text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {activity.message}
               </span>
             </>
@@ -255,7 +259,7 @@ function PopupActivityItem({ activity, isUnread }: { activity: ActivityLog; isUn
             <span>{activity.message}</span>
           )}
         </p>
-        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-[10px] sm:text-xs mt-0.5 sm:mt-1" style={{ color: 'var(--text-muted)' }}>
           {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
         </p>
       </div>

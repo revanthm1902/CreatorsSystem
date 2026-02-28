@@ -3,6 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeStore } from '../../stores/themeStore';
 import { useActivityStore } from '../../stores/activityStore';
+import { useUserStore } from '../../stores/userStore';
+import { useTaskStore } from '../../stores/taskStore';
 import type { UserRole } from '../../types/database';
 import {
   Zap,
@@ -82,6 +84,10 @@ export function Sidebar() {
   }, [mobileOpen]);
 
   const handleSignOut = async () => {
+    // Reset all stores to clear stale data and subscriptions
+    useActivityStore.getState().reset();
+    useUserStore.getState().reset();
+    useTaskStore.getState().reset();
     await signOut();
     navigate('/login');
   };

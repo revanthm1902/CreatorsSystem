@@ -248,3 +248,143 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.activity_log;
 -- 13. Enable realtime for tasks
 ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
 
+-- 14. Password Reset Requests table
+CREATE TABLE IF NOT EXISTS public.password_reset_requests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'dismissed')),
+  resolved_by UUID REFERENCES public.profiles(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_requests_status ON public.password_reset_requests(status);
+CREATE INDEX IF NOT EXISTS idx_password_reset_requests_created_at ON public.password_reset_requests(created_at DESC);
+
+ALTER TABLE public.password_reset_requests ENABLE ROW LEVEL SECURITY;
+
+-- Anyone (including unauthenticated) can submit a password reset request
+CREATE POLICY "Anyone can request password reset"
+  ON public.password_reset_requests FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (status = 'pending');
+
+-- Only Directors can view password reset requests
+CREATE POLICY "Directors can view reset requests"
+  ON public.password_reset_requests FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'Director')
+  );
+
+-- Only Directors can update password reset requests (approve/dismiss)
+CREATE POLICY "Directors can manage reset requests"
+  ON public.password_reset_requests FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'Director')
+  );
+
+-- 15. RPC: Director can reset a user's password
+CREATE OR REPLACE FUNCTION public.admin_reset_user_password(target_user_id UUID, new_password TEXT)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+BEGIN
+  -- Only allow Directors
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'Director') THEN
+    RAISE EXCEPTION 'Unauthorized: Only Directors can reset passwords';
+  END IF;
+
+  -- Update the auth user's password
+  UPDATE auth.users 
+  SET encrypted_password = crypt(new_password, gen_salt('bf')),
+      updated_at = now()
+  WHERE id = target_user_id;
+
+  -- Mark as temporary password so user must change on next login
+  UPDATE public.profiles 
+  SET is_temporary_password = true
+  WHERE id = target_user_id;
+END;
+$$;
+
+-- 16. Migration: Update activity_log action_type constraint to include password_reset_request
+ALTER TABLE public.activity_log DROP CONSTRAINT IF EXISTS activity_log_action_type_check;
+ALTER TABLE public.activity_log ADD CONSTRAINT activity_log_action_type_check CHECK (action_type IN (
+  'user_added', 'task_created', 'task_assigned', 'task_completed', 
+  'task_marked_done', 'task_approved', 'task_rejected', 'task_reassigned',
+  'director_approved_task', 'custom_message', 'task_deleted', 'password_reset_request'
+));
+
+-- Enable realtime for password_reset_requests
+ALTER PUBLICATION supabase_realtime ADD TABLE public.password_reset_requests;
+
+-- 17. RPC: Admin/Director can delete a user (handles FK constraints + auth.users)
+CREATE OR REPLACE FUNCTION public.admin_delete_user(p_target_user_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    caller_role TEXT;
+    target_role TEXT;
+BEGIN
+    -- Get caller role
+    SELECT role INTO caller_role FROM public.profiles WHERE id = auth.uid();
+
+    -- Get target role
+    SELECT role INTO target_role FROM public.profiles WHERE id = p_target_user_id;
+    IF target_role IS NULL THEN
+        RAISE EXCEPTION 'User not found';
+    END IF;
+
+    -- Authorization checks
+    IF caller_role = 'Director' THEN
+        IF target_role = 'Director' THEN
+            RAISE EXCEPTION 'Cannot delete a Director';
+        END IF;
+    ELSIF caller_role = 'Admin' THEN
+        IF target_role != 'User' THEN
+            RAISE EXCEPTION 'Admins can only delete Users';
+        END IF;
+    ELSE
+        RAISE EXCEPTION 'Unauthorized';
+    END IF;
+
+    -- Cannot delete yourself
+    IF p_target_user_id = auth.uid() THEN
+        RAISE EXCEPTION 'Cannot delete yourself';
+    END IF;
+
+    -- 1. Delete activity_log entries where user is actor (actor_id is NOT NULL)
+    DELETE FROM public.activity_log WHERE actor_id = p_target_user_id;
+    -- 2. Nullify target_user_id references
+    UPDATE public.activity_log SET target_user_id = NULL WHERE target_user_id = p_target_user_id;
+
+    -- 3. Delete points_log for this user
+    DELETE FROM public.points_log WHERE user_id = p_target_user_id;
+    -- Also delete points_log for tasks owned by this user (to avoid FK issues)
+    DELETE FROM public.points_log WHERE task_id IN (
+        SELECT id FROM public.tasks WHERE assigned_to = p_target_user_id OR created_by = p_target_user_id
+    );
+
+    -- 4. Nullify task_id references in activity_log for tasks that will be deleted
+    UPDATE public.activity_log SET task_id = NULL WHERE task_id IN (
+        SELECT id FROM public.tasks WHERE assigned_to = p_target_user_id OR created_by = p_target_user_id
+    );
+
+    -- 5. Delete tasks assigned to or created by this user
+    DELETE FROM public.tasks WHERE assigned_to = p_target_user_id OR created_by = p_target_user_id;
+
+    -- 6. Clear password_reset_requests resolved_by references
+    UPDATE public.password_reset_requests SET resolved_by = NULL WHERE resolved_by = p_target_user_id;
+
+    -- 7. Delete auth user (cascades to profile via ON DELETE CASCADE)
+    DELETE FROM auth.users WHERE id = p_target_user_id;
+END;
+$$;
+

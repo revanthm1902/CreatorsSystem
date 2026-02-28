@@ -57,7 +57,19 @@ export type ActivityType =
   | 'task_reassigned'
   | 'director_approved_task'
   | 'custom_message'
-  | 'task_deleted';
+  | 'task_deleted'
+  | 'password_reset_request';
+
+export type PasswordResetStatus = 'pending' | 'approved' | 'dismissed';
+
+export interface PasswordResetRequest {
+  id: string;
+  email: string;
+  status: PasswordResetStatus;
+  resolved_by: string | null;
+  created_at: string;
+  resolved_at: string | null;
+}
 
 export interface ActivityLog {
   id: string;
@@ -118,6 +130,14 @@ export interface Database {
     Functions: {
       increment_tokens: {
         Args: { user_id: string; amount: number };
+        Returns: undefined;
+      };
+      admin_reset_user_password: {
+        Args: { target_user_id: string; new_password: string };
+        Returns: undefined;
+      };
+      admin_delete_user: {
+        Args: { p_target_user_id: string };
         Returns: undefined;
       };
     };

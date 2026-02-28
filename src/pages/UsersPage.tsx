@@ -62,8 +62,11 @@ export function UsersPage() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      await deleteUser(userId);
+    if (confirm('Are you sure you want to delete this user? This will also remove their tasks, points, and activity logs.')) {
+      const result = await deleteUser(userId);
+      if (result.error) {
+        alert(`Failed to delete user: ${result.error}`);
+      }
     }
   };
 
