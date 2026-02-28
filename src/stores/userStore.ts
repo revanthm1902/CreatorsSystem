@@ -1,6 +1,21 @@
 import { create } from 'zustand';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { Profile, ActivityLogInsert, PasswordResetRequest } from '../types/database';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+// Single isolated client for signUp — never persists sessions, never interferes with admin
+// Created once at module level to avoid "Multiple GoTrueClient instances" warnings.
+const signUpClient = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+    storageKey: 'sb-signup-isolated', // unique key so it never collides with main client
+  },
+});
 
 // Helper function to log activity
 async function logActivity(activity: ActivityLogInsert) {
@@ -92,29 +107,76 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   createUser: async (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string) => {
-    // Use server-side RPC to create both auth user and profile atomically.
-    // This avoids the signUp() session-switch bug that corrupts the Director's session
-    // and causes profile creation to fail due to RLS.
+    // Two-step approach:
+    //   Step A: Create auth user via GoTrue signUp (proper record GoTrue can authenticate)
+    //   Step B: Confirm email + create profile via admin_setup_user RPC
+    //
+    // Edge cases handled:
+    //   - User already in auth.users but no profile (orphan from prior failed attempt) → just setup
+    //   - User fully exists (auth + profile) → error "already exists"
+    //   - Brand new user → signUp + setup
     try {
-      const { data, error } = await supabase.rpc('admin_create_user', {
-        p_email: email,
-        p_password: password,
+      let userId: string | null = null;
+
+      // --- Step A: Try signUp ---
+      const { data: signUpData, error: signUpError } = await signUpClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName, role },
+        },
+      });
+
+      if (signUpError) {
+        const msg = signUpError.message.toLowerCase();
+
+        // "User already registered" → check if they have a profile (orphan recovery)
+        if (msg.includes('already registered') || msg.includes('already been registered') || signUpError.status === 422) {
+          const { data: lookupData, error: lookupError } = await supabase.rpc('admin_get_user_id_by_email', {
+            p_email: email,
+          });
+
+          if (lookupError) {
+            return { error: `Could not check existing user: ${lookupError.message}` };
+          }
+
+          const lookup = lookupData as { exists: boolean; user_id?: string; has_profile?: boolean } | null;
+
+          if (!lookup?.exists || !lookup.user_id) {
+            return { error: 'User already registered but could not be found. Please contact support.' };
+          }
+
+          if (lookup.has_profile) {
+            return { error: 'A user with this email already exists.' };
+          }
+
+          // Orphan: auth record exists but no profile → recover by setting up profile
+          userId = lookup.user_id;
+        } else {
+          return { error: signUpError.message };
+        }
+      } else {
+        // signUp succeeded
+        userId = signUpData.user?.id ?? null;
+        if (!userId) {
+          return { error: 'Sign up succeeded but no user ID was returned.' };
+        }
+      }
+
+      // --- Step B: Confirm email + create profile ---
+      const { data, error: setupError } = await supabase.rpc('admin_setup_user', {
+        p_user_id: userId,
         p_full_name: fullName,
         p_role: role,
       });
 
-      if (error) {
-        return { error: error.message };
+      if (setupError) {
+        return { error: setupError.message };
       }
 
-      if (!data) {
-        return { error: 'No response from server. Please check if the database function exists.' };
-      }
-
-      const result = data as { user_id: string; employee_id: string };
-
-      if (!result.user_id || !result.employee_id) {
-        return { error: 'Invalid response from server.' };
+      const result = data as { user_id: string; employee_id: string } | null;
+      if (!result?.user_id || !result?.employee_id) {
+        return { error: 'User created but profile setup returned an unexpected response.' };
       }
 
       // Log activity (fire-and-forget, don't block user creation)

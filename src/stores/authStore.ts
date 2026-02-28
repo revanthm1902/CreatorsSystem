@@ -39,12 +39,14 @@ async function retryQuery<T>(
 // Map raw error messages to user-friendly ones
 function friendlyError(msg: string): string {
   const lower = msg.toLowerCase();
-  if (lower.includes('schema') || lower.includes('connection') || lower.includes('503') || lower.includes('502'))
-    return 'Temporary database issue. Please try again in a moment.';
+  if (lower.includes('schema') || lower.includes('connection') || lower.includes('503') || lower.includes('502') || lower.includes('500') || lower.includes('internal server'))
+    return 'Temporary server issue. Please try again in a moment.';
   if (lower.includes('network') || lower.includes('fetch') || lower.includes('timeout'))
     return 'Network error. Please check your connection and try again.';
-  if (lower.includes('invalid login'))
+  if (lower.includes('invalid login') || lower.includes('invalid email or password'))
     return 'Invalid email or password.';
+  if (lower.includes('email not confirmed'))
+    return 'Your account is not yet confirmed. Please contact your administrator.';
   return msg;
 }
 
