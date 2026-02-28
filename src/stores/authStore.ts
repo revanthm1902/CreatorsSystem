@@ -3,6 +3,24 @@ import { supabase } from '../lib/supabase';
 import type { Profile } from '../types/database';
 import type { User } from '@supabase/supabase-js';
 
+// Retry helper for transient PostgREST / network errors
+async function retryQuery<T>(
+  fn: () => Promise<{ data: T | null; error: { message: string; code?: string } | null }>,
+  retries = 3,
+  delayMs = 800,
+): Promise<{ data: T | null; error: { message: string; code?: string } | null }> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const result = await fn();
+    if (!result.error) return result;
+    // Only retry on transient DB / schema errors, not on auth or RLS
+    const msg = result.error.message?.toLowerCase() ?? '';
+    const isTransient = msg.includes('schema') || msg.includes('network') || msg.includes('fetch') || msg.includes('timeout') || msg.includes('502') || msg.includes('503');
+    if (!isTransient || attempt === retries - 1) return result;
+    await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
+  }
+  return { data: null, error: { message: 'Query failed after retries' } };
+}
+
 interface ProfileUpdateData {
   full_name?: string;
   date_of_birth?: string | null;
@@ -37,7 +55,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialize: async () => {
     set({ loading: true });
     
-    const { data: { session } } = await supabase.auth.getSession();
+    let session = null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      session = data.session;
+    } catch {
+      // Auth service temporarily unavailable — continue with no session
+    }
     
     if (session?.user) {
       set({ user: session.user });
@@ -76,15 +100,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({ user: data.user });
     
-    // Fetch profile and check if it exists
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
+    // Fetch profile with retry for transient DB errors
+    const { data: profileData, error: profileError } = await retryQuery(() =>
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single()
+    );
 
-    if (profileError || !profileData) {
-      // Profile doesn't exist - sign out and show error
+    if (profileError) {
+      const msg = profileError.message?.toLowerCase() ?? '';
+      const isTransient = msg.includes('schema') || msg.includes('network') || msg.includes('fetch') || msg.includes('timeout');
+      if (isTransient) {
+        // Don't sign out — it's a temporary DB issue
+        set({ loading: false });
+        return {
+          error: 'Temporary database issue. Please try again in a moment.',
+          requiresPasswordReset: false,
+        };
+      }
+      // Genuine missing profile
+      await supabase.auth.signOut();
+      set({ user: null, profile: null, loading: false });
+      return { 
+        error: 'Profile not found. Please contact your administrator to complete your account setup.', 
+        requiresPasswordReset: false 
+      };
+    }
+
+    if (!profileData) {
       await supabase.auth.signOut();
       set({ user: null, profile: null, loading: false });
       return { 
@@ -157,14 +202,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user } = get();
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+    const { data, error } = await retryQuery(() =>
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+    );
 
     if (!error && data) {
-      set({ profile: data });
+      set({ profile: data as Profile });
     }
   },
 }));
