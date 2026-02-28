@@ -42,14 +42,14 @@ export function TasksPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
-            <ClipboardList className="w-7 h-7 sm:w-8 sm:h-8 text-accent" />
+          <h1 className="text-lg sm:text-2xl font-bold flex items-center gap-2 sm:gap-3" style={{ color: 'var(--text-primary)' }}>
+            <ClipboardList className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
             {isAdmin ? 'All Tasks' : 'My Tasks'}
           </h1>
-          <p className="mt-1 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>
+          <p className="mt-0.5 sm:mt-1 text-xs sm:text-base" style={{ color: 'var(--text-secondary)' }}>
             {isAdmin ? 'Manage and review all tasks' : 'View and complete your assigned tasks'}
           </p>
         </div>
@@ -73,7 +73,7 @@ export function TasksPage() {
               Pending Your Approval ({pendingApprovalTasks.length})
             </h2>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 rounded-xl border-2 border-dashed border-amber-500/30 bg-amber-500/5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 p-3 sm:p-4 rounded-xl border-2 border-dashed border-amber-500/30 bg-amber-500/5">
             {pendingApprovalTasks.map((task) => (
               <TaskCard
                 key={task.id}
@@ -86,9 +86,9 @@ export function TasksPage() {
       )}
 
       {/* Filter */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 px-1 filter-scroll">
         <Filter className="w-5 h-5 shrink-0" style={{ color: 'var(--text-muted)' }} />
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 sm:gap-2">
           {(['All', 'Pending', 'Under Review', 'Completed', 'Rejected'] as const).map((status) => (
             <button
               key={status}

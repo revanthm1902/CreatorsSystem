@@ -48,15 +48,15 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-900 px-4">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--bg-main)' }}>
       <div className="w-full max-w-md">
-        <div className="bg-surface-800 rounded-2xl shadow-2xl p-6 sm:p-8 border border-surface-600">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-warning/20 rounded-full mb-4">
-              <KeyRound className="w-8 h-8 text-warning" />
+        <div className="rounded-2xl shadow-2xl p-5 sm:p-8 border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-warning/20 rounded-full mb-4">
+              <KeyRound className="w-7 h-7 sm:w-8 sm:h-8 text-warning" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Reset Your Password</h1>
-            <p className="text-gray-400 mt-2">
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Reset Your Password</h1>
+            <p className="text-sm sm:text-base mt-2" style={{ color: 'var(--text-muted)' }}>
               Create a new secure password to continue
             </p>
           </div>
@@ -70,7 +70,7 @@ export function ResetPasswordPage() {
             )}
 
             <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="newPassword" className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                 New Password
               </label>
               <div className="relative">
@@ -80,13 +80,15 @@ export function ResetPasswordPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-3 bg-surface-700 border border-surface-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all pr-12"
+                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all pr-12"
+                  style={{ backgroundColor: 'var(--input-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors hover:opacity-70"
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -98,8 +100,9 @@ export function ResetPasswordPage() {
                 <div
                   key={req.label}
                   className={`flex items-center gap-2 text-sm ${
-                    req.met ? 'text-success' : 'text-gray-500'
+                    req.met ? 'text-success' : ''
                   }`}
+                  style={!req.met ? { color: 'var(--text-muted)' } : undefined}
                 >
                   <CheckCircle className={`w-4 h-4 ${req.met ? 'opacity-100' : 'opacity-30'}`} />
                   {req.label}
@@ -108,7 +111,7 @@ export function ResetPasswordPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                 Confirm Password
               </label>
               <input
@@ -117,13 +120,14 @@ export function ResetPasswordPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className={`w-full px-4 py-3 bg-surface-700 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${
                   confirmPassword.length > 0
                     ? passwordsMatch
                       ? 'border-success'
                       : 'border-danger'
-                    : 'border-surface-600'
+                    : ''
                 }`}
+                style={{ backgroundColor: 'var(--input-bg)', borderColor: confirmPassword.length > 0 ? undefined : 'var(--border-color)', color: 'var(--text-primary)' }}
                 placeholder="••••••••"
               />
             </div>

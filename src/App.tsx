@@ -28,7 +28,7 @@ function App() {
       >
         <div className="text-center animate-scale-in">
           <img 
-            src="/icon.png" 
+            src="/icon.jpeg" 
             alt="Creators Logo" 
             className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-xl logo-animate"
           />

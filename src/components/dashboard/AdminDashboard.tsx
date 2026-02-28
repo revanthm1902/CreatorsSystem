@@ -39,16 +39,16 @@ export function AdminDashboard() {
     : tasks.filter((t) => t.status === statusFilter);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Task Management</h1>
-          <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>Create and manage tasks for your team</p>
+          <h1 className="text-lg sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Task Management</h1>
+          <p className="text-sm mt-0.5 sm:mt-1" style={{ color: 'var(--text-secondary)' }}>Create and manage tasks for your team</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all w-full sm:w-auto"
         >
           <Plus className="w-5 h-5" />
           Create Task
@@ -56,7 +56,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4">
         <StatPill icon={ClipboardList} label="Total" value={stats.totalTasks} active={statusFilter === 'All'} onClick={() => setStatusFilter('All')} />
         <StatPill icon={Clock} label="Pending" value={stats.pending} color="warning" active={statusFilter === 'Pending'} onClick={() => setStatusFilter('Pending')} />
         <StatPill icon={Filter} label="Review" value={stats.underReview} color="accent" active={statusFilter === 'Under Review'} onClick={() => setStatusFilter('Under Review')} />
@@ -65,7 +65,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Tasks Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
         {filteredTasks.map((task) => (
           <TaskCard key={task.id} task={task} isAdminView />
         ))}
@@ -102,7 +102,7 @@ function StatPill({ icon: Icon, label, value, color, active, onClick }: StatPill
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all border ${
+      className={`flex items-center gap-2 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl transition-all border ${
         active
           ? 'bg-primary text-white border-primary'
           : 'hover:border-primary/30'
@@ -113,10 +113,10 @@ function StatPill({ icon: Icon, label, value, color, active, onClick }: StatPill
         color: 'var(--text-primary)'
       } : undefined}
     >
-      <Icon className={`w-5 h-5 ${!active && color ? colorClasses[color] : ''}`} />
+      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${!active && color ? colorClasses[color] : ''}`} />
       <div className="text-left">
-        <p className="text-lg font-bold">{value}</p>
-        <p className="text-xs" style={{ color: active ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>{label}</p>
+        <p className="text-base sm:text-lg font-bold">{value}</p>
+        <p className="text-[10px] sm:text-xs" style={{ color: active ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}>{label}</p>
       </div>
     </button>
   );

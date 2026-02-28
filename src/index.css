@@ -267,3 +267,123 @@ input:focus, textarea:focus, select:focus {
 .stagger-item:nth-child(5) { animation-delay: 0.25s; }
 .stagger-item:nth-child(6) { animation-delay: 0.3s; }
 
+/* ──────────── Mobile-First Enhancements ──────────── */
+
+/* Improve touch targets globally */
+@media (max-width: 640px) {
+  /* Larger tap targets on mobile */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Only apply min-height exceptions for inline/small elements */
+  .inline-badge, [class*="badge"], span[class*="rounded-full"] {
+    min-height: unset;
+    min-width: unset;
+  }
+
+  /* Hide scrollbar on mobile for cleaner look */
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  /* Better card styling on mobile */
+  .card {
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px var(--shadow-color);
+  }
+
+  .card:hover {
+    transform: none; /* Disable hover transforms on touch */
+  }
+
+  /* Reduce motion for performance on mobile */
+  .logo-animate {
+    animation: none;
+  }
+
+  /* Safe area padding for notched devices */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Prevent overscroll bounce on iOS */
+html {
+  overscroll-behavior: none;
+}
+
+/* Smooth scrolling for all scrollable containers */
+.overflow-y-auto, .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+@media (max-width: 640px) {
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Mobile modal - full screen takeover */
+@media (max-width: 640px) {
+  .modal-mobile-full {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .modal-mobile-full > div {
+    max-height: 95vh !important;
+    border-radius: 1.25rem 1.25rem 0 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Pull indicator for mobile modals */
+.modal-pull-indicator {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: var(--border-color);
+  margin: 8px auto 4px;
+}
+
+/* Mobile-optimized filter chips scroll */
+@media (max-width: 640px) {
+  .filter-scroll {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .filter-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Prevent text selection on interactive elements for mobile */
+@media (max-width: 640px) {
+  button, [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Mobile stat card compact layout */
+@media (max-width: 640px) {
+  .stat-card-mobile {
+    padding: 0.75rem !important;
+  }
+  .stat-card-mobile .stat-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+

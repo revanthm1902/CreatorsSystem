@@ -42,7 +42,7 @@ export function UsersPage() {
       case 'Admin':
         return 'bg-accent/10 text-accent border-accent/30';
       default:
-        return 'bg-surface-600 text-gray-300 border-surface-500';
+        return 'text-gray-400 border-transparent';
     }
   };
 
@@ -55,14 +55,14 @@ export function UsersPage() {
   const canManageAdmins = profile?.role === 'Director';
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
-            <Users className="w-7 h-7 sm:w-8 sm:h-8 text-accent" />
+          <h1 className="text-lg sm:text-2xl font-bold flex items-center gap-2 sm:gap-3" style={{ color: 'var(--text-primary)' }}>
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
             User Management
           </h1>
-          <p className="mt-1 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>Manage team members and their roles</p>
+          <p className="mt-0.5 sm:mt-1 text-xs sm:text-base" style={{ color: 'var(--text-secondary)' }}>Manage team members and their roles</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -245,13 +245,14 @@ function CreateUserModal({ isOpen, onClose, canCreateAdmin, actorId, actorName, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
       <div 
-        className="rounded-2xl w-full max-w-md"
+        className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
       >
+        <div className="sm:hidden w-10 h-1 rounded-full mx-auto mt-3 mb-1" style={{ backgroundColor: 'var(--border-color)' }} />
         <div 
-          className="flex items-center justify-between p-6"
+          className="flex items-center justify-between p-5 sm:p-6"
           style={{ borderBottom: '1px solid var(--border-color)' }}
         >
           <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Add New User</h2>
