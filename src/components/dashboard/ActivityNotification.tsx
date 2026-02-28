@@ -244,7 +244,7 @@ function PopupActivityItem({ activity, isUnread }: { activity: ActivityLog; isUn
         <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs sm:text-sm leading-relaxed break-words" style={{ color: 'var(--text-primary)' }}>
+        <p className="text-xs sm:text-sm leading-relaxed wrap-break-word" style={{ color: 'var(--text-primary)' }}>
           {activity.action_type === 'custom_message' ? (
             <>
               <span className="font-semibold">{actorName}</span>

@@ -72,10 +72,15 @@ SET search_path = public
 AS $$
 DECLARE
     new_id TEXT;
-    user_count INTEGER;
+    max_num INTEGER;
 BEGIN
-    SELECT count(*) INTO user_count FROM public.profiles;
-    new_id := 'AV-2026-' || LPAD((user_count + 1)::text, 3, '0');
+    -- Extract the highest existing number to avoid duplicates after deletions
+    SELECT COALESCE(MAX(CAST(SUBSTRING(employee_id FROM '[0-9]+$') AS INTEGER)), 0)
+    INTO max_num
+    FROM public.profiles
+    WHERE employee_id IS NOT NULL;
+    
+    new_id := 'AV-2026-' || LPAD((max_num + 1)::text, 3, '0');
     NEW.employee_id := new_id;
     RETURN NEW;
 END;

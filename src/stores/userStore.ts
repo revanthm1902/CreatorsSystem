@@ -42,12 +42,10 @@ export const useUserStore = create<UserState>((set, get) => ({
     const state = get();
     const now = Date.now();
     
-    // Skip if already loading
-    if (state.loading) return;
-    
-    // Use cache if valid and not forcing refresh
-    if (!force && state.initialized && (now - state.lastFetch) < CACHE_DURATION) {
-      return;
+    // For forced calls (after create/delete), always proceed and reset loading if stuck
+    if (!force) {
+      if (state.loading) return;
+      if (state.initialized && (now - state.lastFetch) < CACHE_DURATION) return;
     }
     
     set({ loading: true });
@@ -59,7 +57,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         .order('employee_id', { ascending: true });
       
       if (!error && data) {
-        set({ users: data, initialized: true, lastFetch: now });
+        set({ users: data, initialized: true, lastFetch: Date.now() });
       }
     } catch (err) {
       console.error('Failed to fetch users:', err);
@@ -119,17 +117,17 @@ export const useUserStore = create<UserState>((set, get) => ({
         return { error: 'Invalid response from server.' };
       }
 
-      // Log activity
-      await logActivity({
+      // Log activity (fire-and-forget, don't block user creation)
+      logActivity({
         actor_id: actorId,
         action_type: 'user_added',
         target_user_id: result.user_id,
         task_id: null,
         message: `${actorName} added ${fullName} as ${role}`,
-      });
+      }).catch(() => {});
 
-      // Force refresh users list
-      await get().fetchUsers(true);
+      // Refresh users list in background (don't block the modal)
+      get().fetchUsers(true).catch(() => {});
       return { error: null, employeeId: result.employee_id };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An unexpected error occurred while creating the user';

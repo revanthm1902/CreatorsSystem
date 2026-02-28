@@ -183,7 +183,7 @@ function ActivityItem({ activity, compact }: ActivityItemProps) {
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className={`${compact ? 'text-xs sm:text-sm' : 'text-sm'} leading-relaxed break-words`} style={{ color: 'var(--text-primary)' }}>
+        <p className={`${compact ? 'text-xs sm:text-sm' : 'text-sm'} leading-relaxed wrap-break-word`} style={{ color: 'var(--text-primary)' }}>
           {activity.action_type === 'custom_message' ? (
             <>
               <span className="font-semibold">{actorName}</span>

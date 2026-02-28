@@ -26,6 +26,8 @@ interface AuthState {
   initialize: () => Promise<void>;
 }
 
+let _authSubscription: { unsubscribe: () => void } | null = null;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
@@ -44,8 +46,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     
     set({ loading: false, initialized: true });
 
-    // Listen for auth changes
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    // Listen for auth changes (clean up previous listener if re-initialized)
+    if (_authSubscription) {
+      _authSubscription.unsubscribe();
+    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         set({ user: session.user });
         await get().fetchProfile();
@@ -53,6 +58,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ user: null, profile: null });
       }
     });
+    _authSubscription = subscription;
   },
 
   signIn: async (email: string, password: string) => {
@@ -96,12 +102,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
+    // Clear state FIRST so UI reacts immediately
+    set({ user: null, profile: null });
     try {
       await supabase.auth.signOut();
     } catch (e) {
-      // Always clear state even if signOut API fails (e.g. expired session)
       console.warn('Sign out API error (state cleared anyway):', e);
     }
+    // Ensure state stays cleared even if auth listener raced
     set({ user: null, profile: null });
   },
 

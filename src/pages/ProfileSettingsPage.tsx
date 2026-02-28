@@ -28,11 +28,11 @@ interface FormData {
   resume_url: string;
 }
 
-function getInitialFormData(profile: Profile | null): FormData {
+function getInitialFormData(profile: Profile | null, userEmail?: string): FormData {
   return {
     full_name: profile?.full_name || '',
     date_of_birth: profile?.date_of_birth || '',
-    email: profile?.email || '',
+    email: profile?.email || userEmail || '',
     phone: profile?.phone || '',
     linkedin_url: profile?.linkedin_url || '',
     github_url: profile?.github_url || '',
@@ -41,10 +41,10 @@ function getInitialFormData(profile: Profile | null): FormData {
 }
 
 export function ProfileSettingsPage() {
-  const { profile, updateProfile, updatePassword, fetchProfile } = useAuthStore();
+  const { user, profile, updateProfile, updatePassword, fetchProfile } = useAuthStore();
   const initializedRef = useRef(false);
   
-  const [formData, setFormData] = useState<FormData>(() => getInitialFormData(profile));
+  const [formData, setFormData] = useState<FormData>(() => getInitialFormData(profile, user?.email ?? undefined));
 
   const [passwords, setPasswords] = useState({
     newPassword: '',
@@ -65,7 +65,7 @@ export function ProfileSettingsPage() {
   useEffect(() => {
     if (profile && !initializedRef.current) {
       initializedRef.current = true;
-      const newData = getInitialFormData(profile);
+      const newData = getInitialFormData(profile, user?.email ?? undefined);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData(newData);
     }
@@ -79,7 +79,7 @@ export function ProfileSettingsPage() {
     const result = await updateProfile({
       full_name: formData.full_name,
       date_of_birth: formData.date_of_birth || null,
-      email: formData.email || null,
+      email: user?.email || formData.email || null,
       phone: formData.phone || null,
       linkedin_url: formData.linkedin_url || null,
       github_url: formData.github_url || null,
@@ -218,17 +218,19 @@ export function ProfileSettingsPage() {
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                 <input
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className={`${inputClasses} pl-11`}
+                  value={user?.email || formData.email}
+                  className={`${inputClasses} pl-11 cursor-not-allowed`}
                   style={{ 
-                    backgroundColor: 'var(--input-bg)', 
+                    backgroundColor: 'var(--bg-elevated)', 
                     borderColor: 'var(--border-color)',
-                    color: 'var(--text-primary)'
+                    color: 'var(--text-muted)'
                   }}
-                  placeholder="your.email@example.com"
+                  disabled
                 />
               </div>
+              <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                Linked to your login account
+              </p>
             </div>
 
             <div>

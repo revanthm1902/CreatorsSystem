@@ -89,7 +89,7 @@ export function Sidebar() {
     useUserStore.getState().reset();
     useTaskStore.getState().reset();
     await signOut();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   const navItems = profile?.role ? navItemsByRole[profile.role] : [];
@@ -285,7 +285,7 @@ export function Sidebar() {
 
       {/* Mobile sidebar (overlay) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col border-r transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-70 flex flex-col border-r transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:hidden ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ 
