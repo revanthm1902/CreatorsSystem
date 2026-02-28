@@ -73,10 +73,12 @@ npm run dev
 
 ### CSS (Tailwind)
 
-- Use Tailwind utility classes
-- Follow the existing dark theme conventions
-- Use the custom color variables (`surface-*`, `primary`, etc.)
-- Keep responsive design in mind
+- Use Tailwind CSS v4 utility classes
+- Follow the CSS variable theming system (`var(--text-primary)`, `var(--bg-card)`, etc.)
+- Use responsive breakpoints: `sm:` (640px), `md:` (768px), `lg:` (1024px)
+- Mobile-first: design for small screens first, then expand with breakpoints
+- Use inline `style={{ }}` for CSS variable usage where Tailwind doesn't support it directly
+- Keep touch targets at minimum 44px for mobile
 
 ### Git Commits
 
@@ -98,16 +100,28 @@ updates
 WIP
 ```
 
-## Project Structure
+## Project Architecture
 
 ```
 src/
-├── components/     # Reusable UI components
-├── pages/          # Page-level components
-├── stores/         # Zustand state stores
-├── lib/            # Utilities and clients
-└── types/          # TypeScript type definitions
+├── components/         # Reusable UI components
+│   ├── dashboard/      # Role-specific dashboards, ActivityFeed
+│   ├── layout/         # Sidebar, DashboardLayout (with mobile header)
+│   ├── routing/        # ProtectedRoute
+│   └── tasks/          # TaskCard, TaskCountdown, CreateTaskModal, EditTaskModal
+├── pages/              # Page-level components
+├── stores/             # Zustand state stores (auth, task, user, activity, theme)
+├── lib/                # Supabase client config
+└── types/              # TypeScript type definitions (database.ts)
 ```
+
+### Key Conventions
+
+- **State management**: Zustand stores with caching (`CACHE_DURATION`) and `force` refresh pattern
+- **Activity logging**: All significant actions log to `activity_log` table via `logActivity()` helper
+- **Task workflow**: Pending → Under Review → Completed/Rejected/Reassigned — admin-gated approval
+- **Tokens**: Only Users earn tokens; Directors and Admins do not have token balances
+- **Roles**: Director > Admin > User — each has specific permissions enforced in both UI and RLS policies
 
 ## Questions?
 

@@ -28,6 +28,8 @@ interface ActivityState {
   unreadCount: number;
   lastReadAt: string | null;
   toastActivity: ActivityLog | null;
+  isPanelOpen: boolean;
+  setIsPanelOpen: (open: boolean) => void;
   fetchActivities: (force?: boolean) => Promise<void>;
   logActivity: (activity: ActivityLogInsert) => Promise<void>;
   postCustomMessage: (actorId: string, message: string) => Promise<void>;
@@ -47,6 +49,8 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   unreadCount: 0,
   lastReadAt: getLastReadAt(),
   toastActivity: null,
+  isPanelOpen: false,
+  setIsPanelOpen: (open: boolean) => set({ isPanelOpen: open }),
 
   fetchActivities: async (force = false) => {
     const state = get();
@@ -161,7 +165,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   },
 
   reset: () => {
-    set({ activities: [], loading: false, initialized: false, lastFetch: 0, unreadCount: 0, lastReadAt: getLastReadAt(), toastActivity: null });
+    set({ activities: [], loading: false, initialized: false, lastFetch: 0, unreadCount: 0, lastReadAt: getLastReadAt(), toastActivity: null, isPanelOpen: false });
   },
 }));
 

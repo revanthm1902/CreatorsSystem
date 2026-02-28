@@ -17,12 +17,15 @@ interface TaskState {
   initialized: boolean;
   lastFetch: number;
   fetchTasks: (userId?: string, role?: string, force?: boolean) => Promise<void>;
-  createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at'>, creatorRole: string) => Promise<{ error: string | null }>;
+  createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback'>, creatorRole: string) => Promise<{ error: string | null }>;
   editTask: (taskId: string, updates: { title: string; description: string; deadline: string; tokens: number; assigned_to: string }, actorId: string, actorRole: string) => Promise<{ error: string | null }>;
-  updateTaskStatus: (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string) => Promise<{ error: string | null }>;
+  updateTaskStatus: (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string, submissionNote?: string) => Promise<{ error: string | null }>;
   approveTask: (taskId: string, userId: string, tokens: number, deadline: string, actorId: string) => Promise<{ error: string | null }>;
   rejectTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
+  reassignTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   approveTaskByDirector: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
+  addFeedback: (taskId: string, feedback: string, actorId: string) => Promise<{ error: string | null }>;
+  deleteTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   subscribeToTasks: () => () => void;
   reset: () => void;
 }
@@ -159,10 +162,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     return { error: null };
   },
 
-  updateTaskStatus: async (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string) => {
+  updateTaskStatus: async (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string, submissionNote?: string) => {
     const updateData: Partial<Task> = { status };
     if (submittedAt) {
       updateData.submitted_at = submittedAt;
+    }
+    if (submissionNote !== undefined) {
+      updateData.submission_note = submissionNote;
     }
 
     const { error } = await supabase
@@ -346,6 +352,113 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         target_user_id: task.assigned_to,
         task_id: taskId,
         message: `${actorName} rejected task "${task.title}" from ${targetName}`,
+      });
+    }
+
+    return { error: null };
+  },
+
+  reassignTask: async (taskId: string, actorId: string) => {
+    const task = get().tasks.find(t => t.id === taskId);
+
+    const updateData: Partial<Task> = {
+      status: 'Pending' as TaskStatus,
+      submitted_at: null,
+      submission_note: null,
+      approved_at: null,
+    };
+
+    const { error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', taskId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === taskId ? { ...t, ...updateData } : t
+      ),
+    }));
+
+    // Log activity
+    if (task) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', [actorId, task.assigned_to]);
+
+      const actorName = profiles?.find(p => p.id === actorId)?.full_name || 'Someone';
+      const targetName = profiles?.find(p => p.id === task.assigned_to)?.full_name || 'a user';
+
+      await logActivity({
+        actor_id: actorId,
+        action_type: 'task_reassigned',
+        target_user_id: task.assigned_to,
+        task_id: taskId,
+        message: `${actorName} reassigned task "${task.title}" back to ${targetName} for rework`,
+      });
+    }
+
+    return { error: null };
+  },
+
+  addFeedback: async (taskId: string, feedback: string, actorId: string) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ admin_feedback: feedback })
+      .eq('id', taskId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === taskId ? { ...t, admin_feedback: feedback } : t
+      ),
+    }));
+
+    return { error: null };
+  },
+
+  deleteTask: async (taskId: string, actorId: string) => {
+    const task = get().tasks.find(t => t.id === taskId);
+
+    // First delete related activity_log entries that reference this task
+    await supabase.from('activity_log').delete().eq('task_id', taskId);
+    // Delete related points_log entries
+    await supabase.from('points_log').delete().eq('task_id', taskId);
+
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskId);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    set((state) => ({
+      tasks: state.tasks.filter((t) => t.id !== taskId),
+    }));
+
+    // Log activity
+    if (task) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', actorId)
+        .single();
+
+      await logActivity({
+        actor_id: actorId,
+        action_type: 'task_deleted',
+        target_user_id: task.assigned_to,
+        task_id: null,
+        message: `${profile?.full_name || 'Someone'} deleted task "${task.title}"`,
       });
     }
 

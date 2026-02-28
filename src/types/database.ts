@@ -29,6 +29,8 @@ export interface Task {
   tokens: number;
   status: TaskStatus;
   director_approved: boolean;
+  submission_note: string | null;
+  admin_feedback: string | null;
   submitted_at: string | null;
   approved_at: string | null;
   created_at: string;
@@ -52,8 +54,10 @@ export type ActivityType =
   | 'task_marked_done'
   | 'task_approved'
   | 'task_rejected'
+  | 'task_reassigned'
   | 'director_approved_task'
-  | 'custom_message';
+  | 'custom_message'
+  | 'task_deleted';
 
 export interface ActivityLog {
   id: string;
@@ -74,9 +78,11 @@ export type ProfileInsert = Omit<Profile, 'created_at' | 'updated_at' | 'employe
   employee_id?: string;
 };
 export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'created_at'>>;
-export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at'> & {
+export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback'> & {
   submitted_at?: string | null;
   approved_at?: string | null;
+  submission_note?: string | null;
+  admin_feedback?: string | null;
 };
 export type TaskUpdate = Partial<Omit<Task, 'id' | 'created_at'>>;
 export type PointsLogInsert = Omit<PointsLog, 'id' | 'created_at'>;

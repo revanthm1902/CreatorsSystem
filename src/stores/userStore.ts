@@ -51,7 +51,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('employee_id', { ascending: true });
       
       if (!error && data) {
         set({ users: data, initialized: true, lastFetch: now });
