@@ -101,14 +101,21 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   },
 
   deleteActivity: async (activityId: string) => {
-    const { error } = await supabase
+    // Use .select() to get back deleted rows — if empty, RLS blocked it
+    const { data, error } = await supabase
       .from('activity_log')
       .delete()
-      .eq('id', activityId);
+      .eq('id', activityId)
+      .select('id');
 
     if (error) {
       console.error('Error deleting activity:', error);
       return { error: error.message };
+    }
+
+    if (!data || data.length === 0) {
+      console.warn('Delete returned no rows — RLS may have blocked it, or row already deleted');
+      // Still remove from local UI state even if DB didn't confirm
     }
 
     // Remove from local state immediately

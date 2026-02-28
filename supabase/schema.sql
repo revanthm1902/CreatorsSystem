@@ -306,7 +306,7 @@ CREATE OR REPLACE FUNCTION public.admin_reset_user_password(target_user_id UUID,
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, extensions
+SET search_path = public
 AS $$
 BEGIN
   -- Only allow Directors
@@ -314,9 +314,9 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized: Only Directors can reset passwords';
   END IF;
 
-  -- Update the auth user's password
+  -- Update the auth user's password (use extensions-qualified crypto)
   UPDATE auth.users 
-  SET encrypted_password = crypt(new_password, gen_salt('bf')),
+  SET encrypted_password = extensions.crypt(new_password, extensions.gen_salt('bf')),
       updated_at = now()
   WHERE id = target_user_id;
 
@@ -349,7 +349,7 @@ CREATE OR REPLACE FUNCTION public.admin_create_user(
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, extensions
+SET search_path = public
 AS $$
 DECLARE
   caller_role TEXT;
@@ -391,7 +391,7 @@ BEGIN
     'authenticated',
     'authenticated',
     p_email,
-    crypt(p_password, gen_salt('bf')),
+    extensions.crypt(p_password, extensions.gen_salt('bf')),
     now(), now(), now(),
     '{"provider":"email","providers":["email"]}',
     jsonb_build_object('full_name', p_full_name, 'role', p_role),
@@ -492,3 +492,12 @@ BEGIN
 END;
 $$;
 
+-- 19. Fix PostgREST schema introspection:
+-- Grant USAGE on extensions schema to PostgREST roles so schema cache builds successfully
+GRANT USAGE ON SCHEMA extensions TO authenticator, anon, authenticated, service_role;
+
+-- Enable replica identity full for activity_log (needed for realtime DELETE events)
+ALTER TABLE public.activity_log REPLICA IDENTITY FULL;
+
+-- Force PostgREST to reload its schema cache after function changes
+NOTIFY pgrst, 'reload schema';

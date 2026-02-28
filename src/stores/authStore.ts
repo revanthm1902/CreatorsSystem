@@ -5,20 +5,47 @@ import type { User } from '@supabase/supabase-js';
 
 // Retry helper for transient PostgREST / network errors
 async function retryQuery<T>(
-  fn: () => Promise<{ data: T | null; error: { message: string; code?: string } | null }>,
+  fn: () => PromiseLike<{ data: T | null; error: { message: string; code?: string } | null }>,
   retries = 3,
-  delayMs = 800,
+  delayMs = 1000,
 ): Promise<{ data: T | null; error: { message: string; code?: string } | null }> {
   for (let attempt = 0; attempt < retries; attempt++) {
-    const result = await fn();
-    if (!result.error) return result;
-    // Only retry on transient DB / schema errors, not on auth or RLS
-    const msg = result.error.message?.toLowerCase() ?? '';
-    const isTransient = msg.includes('schema') || msg.includes('network') || msg.includes('fetch') || msg.includes('timeout') || msg.includes('502') || msg.includes('503');
-    if (!isTransient || attempt === retries - 1) return result;
-    await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
+    try {
+      const result = await fn();
+      if (!result.error) return result;
+      // Only retry on transient DB / schema errors, not on auth or RLS
+      const msg = result.error.message?.toLowerCase() ?? '';
+      const isTransient =
+        msg.includes('schema') ||
+        msg.includes('network') ||
+        msg.includes('fetch') ||
+        msg.includes('timeout') ||
+        msg.includes('502') ||
+        msg.includes('503') ||
+        msg.includes('connection');
+      if (!isTransient || attempt === retries - 1) return result;
+      await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
+    } catch {
+      // fetch() can throw on network failures
+      if (attempt === retries - 1) {
+        return { data: null, error: { message: 'Network error. Please check your connection.' } };
+      }
+      await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
+    }
   }
   return { data: null, error: { message: 'Query failed after retries' } };
+}
+
+// Map raw error messages to user-friendly ones
+function friendlyError(msg: string): string {
+  const lower = msg.toLowerCase();
+  if (lower.includes('schema') || lower.includes('connection') || lower.includes('503') || lower.includes('502'))
+    return 'Temporary database issue. Please try again in a moment.';
+  if (lower.includes('network') || lower.includes('fetch') || lower.includes('timeout'))
+    return 'Network error. Please check your connection and try again.';
+  if (lower.includes('invalid login'))
+    return 'Invalid email or password.';
+  return msg;
 }
 
 interface ProfileUpdateData {
@@ -65,7 +92,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     
     if (session?.user) {
       set({ user: session.user });
-      await get().fetchProfile();
+      try {
+        await get().fetchProfile();
+      } catch {
+        // Profile fetch failed — user is set but profile will be null; fetchProfile retries internally
+      }
     }
     
     set({ loading: false, initialized: true });
@@ -77,7 +108,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         set({ user: session.user });
-        await get().fetchProfile();
+        try {
+          await get().fetchProfile();
+        } catch {
+          // Silently ignore — profile will be fetched when user navigates
+        }
       } else if (event === 'SIGNED_OUT') {
         set({ user: null, profile: null });
       }
@@ -88,62 +123,77 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signIn: async (email: string, password: string) => {
     set({ loading: true });
     
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // 1. Authenticate via GoTrue (not affected by PostgREST schema issues)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      set({ loading: false });
-      return { error: error.message, requiresPasswordReset: false };
-    }
-
-    set({ user: data.user });
-    
-    // Fetch profile with retry for transient DB errors
-    const { data: profileData, error: profileError } = await retryQuery(() =>
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single()
-    );
-
-    if (profileError) {
-      const msg = profileError.message?.toLowerCase() ?? '';
-      const isTransient = msg.includes('schema') || msg.includes('network') || msg.includes('fetch') || msg.includes('timeout');
-      if (isTransient) {
-        // Don't sign out — it's a temporary DB issue
+      if (error) {
         set({ loading: false });
-        return {
-          error: 'Temporary database issue. Please try again in a moment.',
-          requiresPasswordReset: false,
+        return { error: friendlyError(error.message), requiresPasswordReset: false };
+      }
+
+      set({ user: data.user });
+      
+      // 2. Fetch profile with retry for transient DB / PostgREST errors
+      const { data: profileData, error: profileError } = await retryQuery<Profile>(() =>
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single()
+      );
+
+      if (profileError) {
+        const lower = profileError.message?.toLowerCase() ?? '';
+        const isTransient =
+          lower.includes('schema') ||
+          lower.includes('network') ||
+          lower.includes('fetch') ||
+          lower.includes('timeout') ||
+          lower.includes('502') ||
+          lower.includes('503') ||
+          lower.includes('connection');
+        if (isTransient) {
+          // Auth succeeded — don't sign out. User can retry and the session may still be valid.
+          set({ loading: false });
+          return {
+            error: 'Temporary database issue. Please try again in a moment.',
+            requiresPasswordReset: false,
+          };
+        }
+        // Genuine missing profile
+        await supabase.auth.signOut();
+        set({ user: null, profile: null, loading: false });
+        return { 
+          error: 'Profile not found. Please contact your administrator to complete your account setup.', 
+          requiresPasswordReset: false 
         };
       }
-      // Genuine missing profile
-      await supabase.auth.signOut();
-      set({ user: null, profile: null, loading: false });
-      return { 
-        error: 'Profile not found. Please contact your administrator to complete your account setup.', 
-        requiresPasswordReset: false 
-      };
-    }
 
-    if (!profileData) {
-      await supabase.auth.signOut();
-      set({ user: null, profile: null, loading: false });
-      return { 
-        error: 'Profile not found. Please contact your administrator to complete your account setup.', 
-        requiresPasswordReset: false 
-      };
-    }
+      if (!profileData) {
+        await supabase.auth.signOut();
+        set({ user: null, profile: null, loading: false });
+        return { 
+          error: 'Profile not found. Please contact your administrator to complete your account setup.', 
+          requiresPasswordReset: false 
+        };
+      }
 
-    set({ profile: profileData, loading: false });
-    
-    return { 
-      error: null, 
-      requiresPasswordReset: profileData.is_temporary_password ?? false 
-    };
+      set({ profile: profileData, loading: false });
+      
+      return { 
+        error: null, 
+        requiresPasswordReset: profileData.is_temporary_password ?? false 
+      };
+    } catch (e: unknown) {
+      // Catch unexpected throws (network down, fetch failed, etc.)
+      set({ loading: false });
+      const msg = e instanceof Error ? e.message : 'An unexpected error occurred';
+      return { error: friendlyError(msg), requiresPasswordReset: false };
+    }
   },
 
   signOut: async () => {
@@ -202,7 +252,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user } = get();
     if (!user) return;
 
-    const { data, error } = await retryQuery(() =>
+    const { data, error } = await retryQuery<Profile>(() =>
       supabase
         .from('profiles')
         .select('*')
@@ -211,7 +261,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     );
 
     if (!error && data) {
-      set({ profile: data as Profile });
+      set({ profile: data });
     }
   },
 }));
