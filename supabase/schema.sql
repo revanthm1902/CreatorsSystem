@@ -48,6 +48,10 @@ CREATE TABLE IF NOT EXISTS public.tasks (
 -- Migration: Add director_approved column to existing tasks table
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS director_approved BOOLEAN DEFAULT FALSE;
 
+-- Migration: Add submission_note and admin_feedback columns
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS submission_note TEXT;
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS admin_feedback TEXT;
+
 -- 3. Create points log table
 CREATE TABLE IF NOT EXISTS public.points_log (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -206,8 +210,8 @@ CREATE TABLE IF NOT EXISTS public.activity_log (
   actor_id UUID REFERENCES public.profiles(id) NOT NULL, -- Who performed the action
   action_type TEXT NOT NULL CHECK (action_type IN (
     'user_added', 'task_created', 'task_assigned', 'task_completed', 
-    'task_marked_done', 'task_approved', 'task_rejected', 
-    'director_approved_task', 'custom_message'
+    'task_marked_done', 'task_approved', 'task_rejected', 'task_reassigned',
+    'director_approved_task', 'custom_message', 'task_deleted'
   )),
   target_user_id UUID REFERENCES public.profiles(id), -- Optional: affected user
   task_id UUID REFERENCES public.tasks(id), -- Optional: related task

@@ -14,6 +14,8 @@ import {
   MessageSquare,
   Loader2,
   RefreshCw,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react';
 
 const actionIcons: Record<ActivityType, typeof Bell> = {
@@ -24,8 +26,10 @@ const actionIcons: Record<ActivityType, typeof Bell> = {
   task_marked_done: Send,
   task_approved: CheckCircle,
   task_rejected: XCircle,
+  task_reassigned: RotateCcw,
   director_approved_task: ShieldCheck,
   custom_message: MessageSquare,
+  task_deleted: Trash2,
 };
 
 const actionColors: Record<ActivityType, string> = {
@@ -36,8 +40,10 @@ const actionColors: Record<ActivityType, string> = {
   task_marked_done: 'bg-amber-500/20 text-amber-500',
   task_approved: 'bg-green-500/20 text-green-500',
   task_rejected: 'bg-red-500/20 text-red-500',
+  task_reassigned: 'bg-yellow-500/20 text-yellow-500',
   director_approved_task: 'bg-orange-500/20 text-orange-500',
   custom_message: 'bg-cyan-500/20 text-cyan-500',
+  task_deleted: 'bg-rose-500/20 text-rose-500',
 };
 
 interface ActivityFeedProps {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useUserStore } from '../stores/userStore';
 import { useAuthStore } from '../stores/authStore';
 import {
@@ -15,10 +15,25 @@ import {
 } from 'lucide-react';
 import type { UserRole } from '../types/database';
 
+type RoleFilter = 'All' | 'Director' | 'Admin' | 'User';
+
 export function UsersPage() {
   const { users, loading, initialized, fetchUsers, createUser, deleteUser } = useUserStore();
   const { profile } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('All');
+
+  const filteredUsers = useMemo(() => {
+    if (roleFilter === 'All') return users;
+    return users.filter((u) => u.role === roleFilter);
+  }, [users, roleFilter]);
+
+  const roleCounts = useMemo(() => ({
+    All: users.length,
+    Director: users.filter((u) => u.role === 'Director').length,
+    Admin: users.filter((u) => u.role === 'Admin').length,
+    User: users.filter((u) => u.role === 'User').length,
+  }), [users]);
 
   useEffect(() => {
     fetchUsers();
@@ -73,6 +88,47 @@ export function UsersPage() {
         </button>
       </div>
 
+      {/* Role Filter Toggles */}
+      <div className="flex flex-wrap gap-2">
+        {(['All', 'Director', 'Admin', 'User'] as RoleFilter[]).map((filterRole) => {
+          const isActive = roleFilter === filterRole;
+          const count = roleCounts[filterRole];
+          const iconMap: Record<RoleFilter, React.ReactNode> = {
+            All: <Users className="w-3.5 h-3.5" />,
+            Director: <Crown className="w-3.5 h-3.5" />,
+            Admin: <Shield className="w-3.5 h-3.5" />,
+            User: <UserIcon className="w-3.5 h-3.5" />,
+          };
+          const activeColors: Record<RoleFilter, string> = {
+            All: 'bg-primary text-white',
+            Director: 'bg-yellow-500/90 text-white',
+            Admin: 'bg-accent text-white',
+            User: 'bg-gray-500 text-white',
+          };
+          return (
+            <button
+              key={filterRole}
+              onClick={() => setRoleFilter(filterRole)}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
+                isActive ? activeColors[filterRole] : ''
+              }`}
+              style={!isActive ? { backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' } : {}}
+            >
+              {iconMap[filterRole]}
+              {filterRole === 'All' ? 'All' : `${filterRole}s`}
+              <span
+                className={`ml-0.5 px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs font-bold ${
+                  isActive ? 'bg-white/20' : ''
+                }`}
+                style={!isActive ? { backgroundColor: 'var(--bg-elevated)' } : {}}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Users Table (desktop) / Cards (mobile) */}
       <div 
         className="rounded-xl overflow-hidden"
@@ -80,13 +136,13 @@ export function UsersPage() {
       >
         {/* Desktop table header */}
         <div 
-          className="hidden md:grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 p-4 text-sm font-medium"
-          style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
+          className={`hidden md:grid ${roleFilter === 'User' || roleFilter === 'All' ? 'grid-cols-[2.5fr_1.5fr_1fr_0.8fr_0.6fr]' : 'grid-cols-[2.5fr_1.5fr_1fr_0.6fr]'} gap-4 px-5 py-3 text-xs font-semibold uppercase tracking-wider`}
+          style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
         >
           <span>User</span>
           <span>Employee ID</span>
           <span>Role</span>
-          <span>Tokens</span>
+          {(roleFilter === 'User' || roleFilter === 'All') && <span>Tokens</span>}
           <span className="text-right">Actions</span>
         </div>
         <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
@@ -94,28 +150,28 @@ export function UsersPage() {
             <div className="p-8 flex justify-center">
               <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
             </div>
-          ) : users.length === 0 ? (
+          ) : filteredUsers.length === 0 ? (
             <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>
               <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No users found</p>
+              <p>{roleFilter === 'All' ? 'No users found' : `No ${roleFilter}s found`}</p>
             </div>
           ) : (
-            users.map((user) => (
+            filteredUsers.map((user) => (
             <div
               key={user.id}
-              className="p-4 transition-all"
+              className="transition-all hover:brightness-105"
               style={{ borderColor: 'var(--border-color)' }}
             >
               {/* Desktop row */}
-              <div className="hidden md:grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+              <div className={`hidden md:grid ${roleFilter === 'User' || roleFilter === 'All' ? 'grid-cols-[2.5fr_1.5fr_1fr_0.8fr_0.6fr]' : 'grid-cols-[2.5fr_1.5fr_1fr_0.6fr]'} gap-4 items-center px-5 py-3.5`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 bg-primary/15 rounded-full flex items-center justify-center shrink-0">
                     {getRoleIcon(user.role)}
                   </div>
-                  <div>
-                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate text-sm" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
                     {user.is_temporary_password && (
-                      <span className="text-xs text-warning">Pending password reset</span>
+                      <span className="text-[11px] text-warning">Pending password reset</span>
                     )}
                   </div>
                 </div>
@@ -128,12 +184,20 @@ export function UsersPage() {
                     {user.role}
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-accent">
-                  <Zap className="w-4 h-4" />
-                  <span className="font-medium">{user.total_tokens}</span>
-                </div>
-                <div className="flex items-center gap-2 justify-end">
-                  {(user.role === 'User' || (canManageAdmins && user.role === 'Admin')) && user.id !== profile?.id && (
+                {(roleFilter === 'User' || roleFilter === 'All') && (
+                  <div className="flex items-center gap-1 text-accent">
+                    {user.role === 'User' ? (
+                      <>
+                        <Zap className="w-4 h-4" />
+                        <span className="font-medium text-sm">{user.total_tokens}</span>
+                      </>
+                    ) : (
+                      <span className="text-sm" style={{ color: 'var(--text-muted)' }}>—</span>
+                    )}
+                  </div>
+                )}
+                <div className="flex items-center justify-end">
+                  {(user.role === 'User' || (canManageAdmins && user.role === 'Admin')) && user.id !== profile?.id ? (
                     <button
                       onClick={() => handleDeleteUser(user.id)}
                       className="p-2 hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
@@ -142,30 +206,35 @@ export function UsersPage() {
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
+                  ) : (
+                    <span className="w-8" />
                   )}
                 </div>
               </div>
+
               {/* Mobile card */}
-              <div className="md:hidden flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center shrink-0">
+              <div className="md:hidden flex items-center gap-3 px-4 py-3">
+                <div className="w-10 h-10 bg-primary/15 rounded-full flex items-center justify-center shrink-0">
                   {getRoleIcon(user.role)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
+                    <p className="font-medium truncate text-sm" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0 ${getRoleBadgeClass(user.role)}`}>
                       {user.role}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 mt-1">
+                  <div className="flex items-center gap-3 mt-0.5">
                     <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{user.employee_id}</span>
-                    <div className="flex items-center gap-1 text-accent text-xs">
-                      <Zap className="w-3 h-3" />
-                      <span className="font-medium">{user.total_tokens}</span>
-                    </div>
+                    {user.role === 'User' && (
+                      <div className="flex items-center gap-1 text-accent text-xs">
+                        <Zap className="w-3 h-3" />
+                        <span className="font-medium">{user.total_tokens}</span>
+                      </div>
+                    )}
                   </div>
                   {user.is_temporary_password && (
-                    <span className="text-xs text-warning">Pending password reset</span>
+                    <span className="text-[11px] text-warning mt-0.5 block">Pending password reset</span>
                   )}
                 </div>
                 {(user.role === 'User' || (canManageAdmins && user.role === 'Admin')) && user.id !== profile?.id && (

@@ -274,7 +274,6 @@ input:focus, textarea:focus, select:focus {
   /* Larger tap targets on mobile */
   button, a, [role="button"] {
     min-height: 44px;
-    min-width: 44px;
   }
 
   /* Only apply min-height exceptions for inline/small elements */
@@ -385,5 +384,33 @@ html {
     width: 2.5rem;
     height: 2.5rem;
   }
+}
+
+/* Slick bottom-sheet entrance animation for mobile modals */
+@keyframes sheet-up {
+  from { transform: translateY(40%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  /* Auto-animate any bottom-sheet panel on mobile */
+  .rounded-t-2xl {
+    animation: sheet-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+
+/* Prevent iOS Safari auto-zoom when focusing inputs */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Smoother backdrop transitions */
+.bg-black\/50,
+.bg-black\/60 {
+  transition: opacity 0.2s ease;
 }
 

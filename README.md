@@ -23,24 +23,28 @@ Creators System is an open-source task management platform built for AryVerse. I
 ### Key Features
 
 - **Role-Based Access Control** - Director, Admin, and User roles with hierarchical permissions
-- **Task Management** - Create, assign, and track tasks with deadlines and token rewards
+- **Task Management** - Create, assign, edit, and track tasks with deadlines and token rewards
 - **Director Approval Workflow** - Tasks created by Admins require Director approval before becoming visible to Users
-- **Token System** - Points awarded for completing tasks on time
-- **Real-time Activity Feed** - Live updates for user additions, task assignments, completions, and custom announcements
+- **Task Reassignment** - Admins can send submitted tasks back to the user for rework instead of approving/rejecting
+- **Token System** - Points awarded to Users for completing tasks on time (Directors/Admins don't have tokens)
+- **Submission Notes** - Users can describe their work when submitting tasks for review
+- **Admin Feedback** - Admins/Directors can leave constructive feedback on tasks
+- **Real-time Activity Feed** - Live updates for user additions, task assignments, completions, reassignments, and custom announcements
 - **Real-time Updates** - Live task status updates via Supabase Realtime
 - **Leaderboard** - Visual ranking of users based on accumulated tokens
 - **Light/Dark Theme** - Toggle between light and dark modes
 - **Auto Employee IDs** - Unique IDs generated automatically (e.g., `AV-2026-001`)
 - **Secure Onboarding** - Temporary password with forced reset on first login
 - **Profile Settings** - Users can update personal info, links, and passwords
+- **Mobile-First Design** - Fully responsive UI with touch-optimized interactions
 
 ### User Roles
 
 | Role | Capabilities |
 |------|--------------|
 | **Director** | Full system access, manage all users (including Admins), approve Admin-created tasks, post announcements |
-| **Admin** | Create/assign tasks, set deadlines & tokens, approve/reject user submissions, post announcements |
-| **User** | View assigned tasks, submit completed work, track tokens, view activity feed |
+| **Admin** | Create/assign/edit tasks, set deadlines & tokens, approve/reject/reassign user submissions, give feedback, post announcements |
+| **User** | View assigned tasks, submit completed work with notes, track tokens, view activity feed |
 
 ## Tech Stack
 
@@ -167,14 +171,16 @@ Admin creates task → Pending (awaiting Director approval)
        ↓
 Director approves → Task visible to User
        ↓
-User submits work → Under Review
+User submits work (with optional note) → Under Review
        ↓
-Admin approves → Completed (tokens awarded if on time)
+Admin approves  → Completed (tokens awarded if on time)
        or
-Admin rejects → Rejected (no tokens, task returns to Pending)
+Admin reassigns → Pending (sent back for rework, user resubmits)
+       or
+Admin rejects   → Rejected (no tokens)
 ```
 
-**Note:** Tasks created by Directors are auto-approved and immediately visible to Users.
+**Note:** Tasks created by Directors are auto-approved and immediately visible to Users. Only Users receive tokens — Directors and Admins do not have tokens.
 
 ## Activity Feed
 
@@ -187,7 +193,9 @@ The Activity Feed provides real-time visibility into team actions:
 | `task_marked_done` | When a user submits their work |
 | `task_approved` | When an admin approves completed work |
 | `task_rejected` | When an admin rejects a submission |
+| `task_reassigned` | When an admin sends a task back for rework |
 | `director_approved_task` | When a director approves a pending task |
+| `task_deleted` | When a task is deleted by admin/director |
 | `custom_message` | Announcements posted by Directors/Admins |
 
 ## Production Deployment
@@ -272,7 +280,7 @@ Contributions are what make the open source community amazing! Any contributions
 - [ ] Add email notifications for task deadlines
 - [ ] Implement task categories/tags
 - [ ] Add task comments/attachments
-- [ ] Create mobile-responsive improvements
+- [x] Mobile-responsive design *(Implemented!)*
 - [x] Add dark/light theme toggle *(Implemented!)*
 - [ ] Implement task analytics dashboard
 - [ ] Add export functionality (CSV/PDF)
@@ -280,6 +288,9 @@ Contributions are what make the open source community amazing! Any contributions
 - [x] Director approval workflow for admin-created tasks *(Implemented!)*
 - [x] Real-time activity feed with custom announcements *(Implemented!)*
 - [x] Profile settings page *(Implemented!)*
+- [x] Task reassignment workflow *(Implemented!)*
+- [x] Submission notes and admin feedback *(Implemented!)*
+- [x] Admin task editing and deletion *(Implemented!)*
 
 ### Code Style
 

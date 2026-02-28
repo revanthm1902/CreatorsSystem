@@ -93,7 +93,7 @@ export function TasksPage() {
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              className={`px-3.5 py-2 sm:py-1.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
                 statusFilter === status
                   ? 'bg-primary text-white'
                   : 'hover:opacity-80'

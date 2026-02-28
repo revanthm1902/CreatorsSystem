@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useThemeStore } from '../../stores/themeStore';
+import { useActivityStore } from '../../stores/activityStore';
 import type { UserRole } from '../../types/database';
 import {
   Zap,
@@ -63,6 +64,7 @@ const navItemsByRole: Record<UserRole, NavItem[]> = {
 export function Sidebar() {
   const { profile, signOut } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
+  const isActivityOpen = useActivityStore((s) => s.isPanelOpen);
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -252,18 +254,20 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile hamburger button - fixed at top */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 p-2.5 rounded-xl border shadow-lg lg:hidden"
-        style={{ 
-          backgroundColor: 'var(--bg-card)', 
-          borderColor: 'var(--border-color)',
-          color: 'var(--text-primary)'
-        }}
-      >
-        <Menu className="w-5 h-5" />
-      </button>
+      {/* Mobile hamburger button - fixed at top, hidden when activity panel is open */}
+      {!isActivityOpen && (
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="fixed top-4 left-4 z-50 p-2.5 rounded-xl border shadow-lg lg:hidden"
+          style={{ 
+            backgroundColor: 'var(--bg-card)', 
+            borderColor: 'var(--border-color)',
+            color: 'var(--text-primary)'
+          }}
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Mobile overlay */}
       {mobileOpen && (
@@ -275,7 +279,7 @@ export function Sidebar() {
 
       {/* Mobile sidebar (overlay) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 flex flex-col border-r animate-fade-in transition-transform duration-300 lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col border-r transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] lg:hidden ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ 
