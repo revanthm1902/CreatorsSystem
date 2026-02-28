@@ -32,6 +32,7 @@ interface ActivityState {
   setIsPanelOpen: (open: boolean) => void;
   fetchActivities: (force?: boolean) => Promise<void>;
   logActivity: (activity: ActivityLogInsert) => Promise<void>;
+  deleteActivity: (activityId: string) => Promise<{ error: string | null }>;
   postCustomMessage: (actorId: string, message: string) => Promise<void>;
   subscribeToActivities: () => () => void;
   markAllRead: () => void;
@@ -99,6 +100,24 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     }
   },
 
+  deleteActivity: async (activityId: string) => {
+    const { error } = await supabase
+      .from('activity_log')
+      .delete()
+      .eq('id', activityId);
+
+    if (error) {
+      console.error('Error deleting activity:', error);
+      return { error: error.message };
+    }
+
+    // Remove from local state immediately
+    set((state) => ({
+      activities: state.activities.filter((a) => a.id !== activityId),
+    }));
+    return { error: null };
+  },
+
   postCustomMessage: async (actorId: string, message: string) => {
     const activity: ActivityLogInsert = {
       actor_id: actorId,
@@ -136,6 +155,18 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
               activities: [data as ActivityLog, ...state.activities].slice(0, 50),
               unreadCount: state.unreadCount + 1,
               toastActivity: data as ActivityLog,
+            }));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'activity_log' },
+        (payload) => {
+          const deletedId = (payload.old as { id?: string })?.id;
+          if (deletedId) {
+            set((state) => ({
+              activities: state.activities.filter((a) => a.id !== deletedId),
             }));
           }
         }

@@ -247,6 +247,17 @@ CREATE POLICY "Directors and Admins can insert activity"
     )
   );
 
+-- Directors and Admins can delete activity
+CREATE POLICY "Directors and Admins can delete activity"
+  ON public.activity_log FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('Director', 'Admin')
+    )
+  );
+
 -- Enable realtime for activity_log
 ALTER PUBLICATION supabase_realtime ADD TABLE public.activity_log;
 

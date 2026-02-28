@@ -128,6 +128,7 @@ function ActivityPopup({ onClose }: { onClose: () => void }) {
   };
 
   const canPost = profile?.role === 'Director' || profile?.role === 'Admin';
+  const canDelete = canPost;
 
   return (
     <div
@@ -214,7 +215,7 @@ function ActivityPopup({ onClose }: { onClose: () => void }) {
                 ? new Date(activity.created_at) > new Date(lastRead)
                 : false;
               return (
-                <PopupActivityItem key={activity.id} activity={activity} isUnread={isUnread} />
+                <PopupActivityItem key={activity.id} activity={activity} isUnread={isUnread} canDelete={canDelete} />
               );
             })
           )}
@@ -224,15 +225,24 @@ function ActivityPopup({ onClose }: { onClose: () => void }) {
   );
 }
 
-function PopupActivityItem({ activity, isUnread }: { activity: ActivityLog; isUnread: boolean }) {
+function PopupActivityItem({ activity, isUnread, canDelete }: { activity: ActivityLog; isUnread: boolean; canDelete: boolean }) {
+  const [deleting, setDeleting] = useState(false);
+  const deleteActivity = useActivityStore((s) => s.deleteActivity);
   const Icon = actionIcons[activity.action_type] || Bell;
   const colorClass = actionColors[activity.action_type] || 'bg-gray-500/20 text-gray-500';
   const actorName = activity.actor?.full_name || 'Someone';
   const actorRole = activity.actor?.role || '';
 
+  const handleDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    await deleteActivity(activity.id);
+    setDeleting(false);
+  };
+
   return (
     <div
-      className={`flex items-start gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl transition-colors relative ${
+      className={`group flex items-start gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl transition-colors relative ${
         isUnread ? 'ring-1 ring-primary/30' : ''
       }`}
       style={{ backgroundColor: isUnread ? 'var(--bg-card)' : 'var(--bg-elevated)' }}
@@ -263,6 +273,20 @@ function PopupActivityItem({ activity, isUnread }: { activity: ActivityLog; isUn
           {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
         </p>
       </div>
+      {canDelete && (
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-danger/15 text-danger/60 hover:text-danger disabled:opacity-50"
+          title="Delete activity"
+        >
+          {deleting ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="w-3.5 h-3.5" />
+          )}
+        </button>
+      )}
     </div>
   );
 }

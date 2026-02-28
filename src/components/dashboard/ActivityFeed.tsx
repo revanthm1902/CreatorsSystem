@@ -56,7 +56,7 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ showPostForm = false, maxItems = 20, compact = false }: ActivityFeedProps) {
-  const { activities, loading, fetchActivities, subscribeToActivities, postCustomMessage } = useActivityStore();
+  const { activities, loading, fetchActivities, subscribeToActivities, postCustomMessage, deleteActivity } = useActivityStore();
   const { profile } = useAuthStore();
   const [newMessage, setNewMessage] = useState('');
   const [posting, setPosting] = useState(false);
@@ -151,7 +151,13 @@ export function ActivityFeed({ showPostForm = false, maxItems = 20, compact = fa
           </div>
         ) : (
           displayActivities.map((activity) => (
-            <ActivityItem key={activity.id} activity={activity} compact={compact} />
+            <ActivityItem 
+              key={activity.id} 
+              activity={activity} 
+              compact={compact}
+              canDelete={canPost}
+              onDelete={deleteActivity}
+            />
           ))
         )}
       </div>
@@ -162,18 +168,28 @@ export function ActivityFeed({ showPostForm = false, maxItems = 20, compact = fa
 interface ActivityItemProps {
   activity: ActivityLog;
   compact?: boolean;
+  canDelete?: boolean;
+  onDelete?: (id: string) => Promise<{ error: string | null }>;
 }
 
-function ActivityItem({ activity, compact }: ActivityItemProps) {
+function ActivityItem({ activity, compact, canDelete, onDelete }: ActivityItemProps) {
+  const [deleting, setDeleting] = useState(false);
   const Icon = actionIcons[activity.action_type] || Bell;
   const colorClass = actionColors[activity.action_type] || 'bg-gray-500/20 text-gray-500';
   
   const actorName = activity.actor?.full_name || 'Someone';
   const actorRole = activity.actor?.role || '';
 
+  const handleDelete = async () => {
+    if (!onDelete || deleting) return;
+    setDeleting(true);
+    await onDelete(activity.id);
+    setDeleting(false);
+  };
+
   return (
     <div 
-      className={`flex items-start gap-2.5 sm:gap-3 ${compact ? 'p-2 sm:p-2.5' : 'p-2.5 sm:p-3'} rounded-xl transition-all hover:scale-[1.01]`}
+      className={`group flex items-start gap-2.5 sm:gap-3 ${compact ? 'p-2 sm:p-2.5' : 'p-2.5 sm:p-3'} rounded-xl transition-all hover:scale-[1.01]`}
       style={{ backgroundColor: 'var(--bg-elevated)' }}
     >
       {/* Icon */}
@@ -202,6 +218,22 @@ function ActivityItem({ activity, compact }: ActivityItemProps) {
           {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
         </p>
       </div>
+
+      {/* Delete button (Admin/Director only) */}
+      {canDelete && (
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-danger/15 text-danger/60 hover:text-danger disabled:opacity-50"
+          title="Delete activity"
+        >
+          {deleting ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="w-3.5 h-3.5" />
+          )}
+        </button>
+      )}
     </div>
   );
 }
