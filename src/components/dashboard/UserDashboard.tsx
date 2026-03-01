@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { useTaskStore } from '../../stores/taskStore';
 import { TaskCard } from '../tasks/TaskCard';
+import { StatCard } from '../ui/StatCard';
 
 import { ClipboardList, Zap, CheckCircle, Clock } from 'lucide-react';
 
@@ -87,38 +88,6 @@ export function UserDashboard() {
             <p>No tasks assigned to you yet</p>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-interface StatCardProps {
-  icon: typeof ClipboardList;
-  label: string;
-  value: number;
-  color?: 'warning' | 'accent' | 'success';
-}
-
-function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
-  const colorClasses = {
-    warning: 'bg-warning/10 text-warning',
-    accent: 'bg-accent/10 text-accent',
-    success: 'bg-success/10 text-success',
-  };
-
-  return (
-    <div 
-      className="rounded-xl p-3 sm:p-4 border"
-      style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
-    >
-      <div className="flex items-center gap-2.5 sm:gap-3">
-        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center ${color ? colorClasses[color] : 'bg-primary/10 text-primary'}`}>
-          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-        </div>
-        <div>
-          <p className="text-lg sm:text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</p>
-          <p className="text-[11px] sm:text-xs" style={{ color: 'var(--text-muted)' }}>{label}</p>
-        </div>
       </div>
     </div>
   );

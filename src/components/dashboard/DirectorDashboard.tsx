@@ -4,6 +4,8 @@ import { useTaskStore } from '../../stores/taskStore';
 import { useUserStore } from '../../stores/userStore';
 import { TaskCard } from '../tasks/TaskCard';
 import { CreateTaskModal } from '../tasks/CreateTaskModal';
+import { StatCard } from '../ui/StatCard';
+import { ResetPasswordModal } from './ResetPasswordModal';
 
 import {
   Plus,
@@ -15,11 +17,7 @@ import {
   TrendingUp,
   ShieldAlert,
   KeyRound,
-  Eye,
-  EyeOff,
   X,
-  AlertCircle,
-  Loader2,
 } from 'lucide-react';
 
 export function DirectorDashboard() {
@@ -72,42 +70,17 @@ export function DirectorDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-6 [&>:last-child:nth-child(odd)]:col-span-2 sm:[&>:last-child:nth-child(odd)]:col-span-1">
-        <StatCard
-          icon={ClipboardList}
-          label="Total Tasks"
-          value={stats.totalTasks}
-          color="primary"
-        />
-        <StatCard
-          icon={ShieldAlert}
-          label="Awaiting Approval"
-          value={stats.pendingApproval}
-          color="warning"
-        />
-        <StatCard
-          icon={Clock}
-          label="Pending"
-          value={stats.pendingTasks}
-          color="accent"
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Under Review"
-          value={stats.underReview}
-          color="primary"
-        />
-        <StatCard
-          icon={CheckCircle}
-          label="Completed"
-          value={stats.completed}
-          color="success"
-        />
+        <StatCard icon={ClipboardList} label="Total Tasks" value={stats.totalTasks} color="primary" variant="gradient" />
+        <StatCard icon={ShieldAlert} label="Awaiting Approval" value={stats.pendingApproval} color="warning" variant="gradient" />
+        <StatCard icon={Clock} label="Pending" value={stats.pendingTasks} color="accent" variant="gradient" />
+        <StatCard icon={TrendingUp} label="Under Review" value={stats.underReview} color="primary" variant="gradient" />
+        <StatCard icon={CheckCircle} label="Completed" value={stats.completed} color="success" variant="gradient" />
       </div>
 
       {/* User Stats */}
       <div className="grid grid-cols-2 md:grid-cols-2 gap-2.5 sm:gap-6">
-        <StatCard icon={Users} label="Total Users" value={stats.totalUsers} color="primary" />
-        <StatCard icon={Users} label="Admins" value={stats.totalAdmins} color="accent" />
+        <StatCard icon={Users} label="Total Users" value={stats.totalUsers} color="primary" variant="gradient" />
+        <StatCard icon={Users} label="Admins" value={stats.totalAdmins} color="accent" variant="gradient" />
       </div>
 
       {/* Password Reset Requests */}
@@ -240,214 +213,6 @@ export function DirectorDashboard() {
           onClose={() => setResetModal(null)}
         />
       )}
-    </div>
-  );
-}
-
-interface StatCardProps {
-  icon: typeof ClipboardList;
-  label: string;
-  value: number;
-  color: 'primary' | 'warning' | 'accent' | 'success' | 'danger';
-}
-
-function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
-  const gradientClasses = {
-    primary: 'stat-gradient-1',
-    warning: 'stat-gradient-4',
-    accent: 'stat-gradient-2',
-    success: 'stat-gradient-3',
-    danger: 'stat-gradient-4',
-  };
-
-  const iconClasses = {
-    primary: 'bg-primary/20 text-primary',
-    warning: 'bg-warning/20 text-warning',
-    accent: 'bg-accent/20 text-accent',
-    success: 'bg-success/20 text-success',
-    danger: 'bg-danger/20 text-danger',
-  };
-
-  return (
-    <div 
-      className={`card rounded-2xl p-3 sm:p-6 ${gradientClasses[color]} hover:scale-[1.02] transition-transform cursor-default`}
-      style={{ borderColor: 'var(--border-color)' }}
-    >
-      <div className="flex items-center gap-2.5 sm:gap-4">
-        <div className={`w-9 h-9 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center ${iconClasses[color]}`}>
-          <Icon className="w-5 h-5 sm:w-7 sm:h-7" />
-        </div>
-        <div>
-          <p className="text-xl sm:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</p>
-          <p className="text-[10px] sm:text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{label}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ────────── Reset Password Modal ────────── */
-interface ResetPasswordModalProps {
-  requestId: string;
-  email: string;
-  users: import('../../types/database').Profile[];
-  actorId: string;
-  actorName: string;
-  resetUserPassword: (userId: string, newPassword: string, requestId: string, actorId: string, actorName: string, userEmail: string) => Promise<{ error: string | null }>;
-  onClose: () => void;
-}
-
-function ResetPasswordModal({ requestId, email, users, actorId, actorName, resetUserPassword, onClose }: ResetPasswordModalProps) {
-  const [newPassword, setNewPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-
-  // Find the user by email
-  const targetUser = users.find((u) => u.email === email);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPassword.trim() || newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-    if (!targetUser) {
-      setError('User not found in system. The email may not match any registered user.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    const result = await resetUserPassword(targetUser.id, newPassword, requestId, actorId, actorName, email);
-    setLoading(false);
-
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setSuccess(true);
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl overflow-hidden"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
-      >
-        <div className="sm:hidden w-10 h-1 rounded-full mx-auto mt-3 mb-1" style={{ backgroundColor: 'var(--border-color)' }} />
-
-        <div
-          className="flex items-center justify-between p-5"
-          style={{ borderBottom: '1px solid var(--border-color)' }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-warning/20 rounded-full flex items-center justify-center">
-              <KeyRound className="w-5 h-5 text-warning" />
-            </div>
-            <div>
-              <h2 className="font-bold" style={{ color: 'var(--text-primary)' }}>Reset Password</h2>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{email}</p>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ color: 'var(--text-muted)' }} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {success ? (
-          <div className="p-6 text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-success/20 rounded-full">
-              <CheckCircle className="w-7 h-7 text-success" />
-            </div>
-            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>Password reset successfully!</p>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              The user will need to log in with the new temporary password and set their own.
-            </p>
-            <button
-              onClick={onClose}
-              className="w-full px-4 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-all"
-            >
-              Done
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="p-5 space-y-4">
-            {!targetUser && (
-              <div className="bg-warning/10 border border-warning/30 text-warning rounded-xl p-3 text-sm flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>No user found with email "<strong>{email}</strong>". The email in the request may not match a registered profile.</span>
-              </div>
-            )}
-
-            {error && (
-              <div className="bg-danger/10 border border-danger/30 text-danger rounded-xl p-3 text-sm flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                New Temporary Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary transition-all pr-12"
-                  style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-                  placeholder="Enter new password..."
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                User will be required to change this on their next login.
-              </p>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-4 py-3 rounded-xl transition-all text-sm font-medium"
-                style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading || !targetUser}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-all disabled:opacity-50 text-sm"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <KeyRound className="w-4 h-4" />
-                    Reset Password
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
     </div>
   );
 }

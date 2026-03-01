@@ -34,7 +34,7 @@ interface TaskState {
   rejectTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   reassignTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   approveTaskByDirector: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
-  addFeedback: (taskId: string, feedback: string, actorId: string) => Promise<{ error: string | null }>;
+  addFeedback: (taskId: string, feedback: string) => Promise<{ error: string | null }>;
   deleteTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   subscribeToTasks: () => () => void;
   reset: () => void;
@@ -402,7 +402,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   // -----------------------------------------------------------------------
   // Feedback
   // -----------------------------------------------------------------------
-  addFeedback: async (taskId, feedback, _actorId) => {
+  addFeedback: async (taskId, feedback) => {
     try {
       const { error } = await taskService.setTaskFeedback(taskId, feedback);
       if (error) return { error };

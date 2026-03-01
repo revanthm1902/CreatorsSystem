@@ -5,9 +5,6 @@
  *  - Hold activity entries, unread counts, toast state in Zustand
  *  - Track last-read timestamp via localStorage
  *  - Delegate all Supabase I/O to activityService
- *
- * The createActivityMessage utility remains exported for any consumer
- * that needs to build activity strings without touching the store.
  */
 
 import { create } from 'zustand';
@@ -170,38 +167,3 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     });
   },
 }));
-
-// ---------------------------------------------------------------------------
-// Utility: build activity messages (pure function, no I/O)
-// ---------------------------------------------------------------------------
-export function createActivityMessage(
-  action: ActivityLogInsert['action_type'],
-  actorName: string,
-  targetName?: string,
-  taskTitle?: string,
-): string {
-  switch (action) {
-    case 'user_added':
-      return `${actorName} added ${targetName} to the team`;
-    case 'task_created':
-      return `${actorName} created task "${taskTitle}"`;
-    case 'task_assigned':
-      return `${actorName} assigned task "${taskTitle}" to ${targetName}`;
-    case 'task_marked_done':
-      return `${targetName} submitted task "${taskTitle}" for review`;
-    case 'task_approved':
-      return `${actorName} approved task "${taskTitle}" for ${targetName}`;
-    case 'task_rejected':
-      return `${actorName} rejected task "${taskTitle}" from ${targetName}`;
-    case 'task_completed':
-      return `${targetName} completed task "${taskTitle}"`;
-    case 'director_approved_task':
-      return `${actorName} approved task "${taskTitle}" for users`;
-    case 'custom_message':
-      return '';
-    case 'password_reset_request':
-      return `${actorName} reset password for ${targetName}`;
-    default:
-      return 'Activity occurred';
-  }
-}
