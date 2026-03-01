@@ -1,9 +1,26 @@
-import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
-import type { ActivityLog, ActivityLogInsert } from '../types/database';
+/**
+ * Activity store — manages activity feed UI state.
+ *
+ * Responsibilities (SRP):
+ *  - Hold activity entries, unread counts, toast state in Zustand
+ *  - Track last-read timestamp via localStorage
+ *  - Delegate all Supabase I/O to activityService
+ *
+ * The createActivityMessage utility remains exported for any consumer
+ * that needs to build activity strings without touching the store.
+ */
 
+import { create } from 'zustand';
+import type { ActivityLog, ActivityLogInsert } from '../types/database';
+import * as activityServiceMod from '../services/activityService';
+import { logger } from '../lib/logger';
+
+const CAT = 'activityStore';
 const LAST_READ_KEY = 'activity_last_read_at';
 
+// ---------------------------------------------------------------------------
+// localStorage helpers (extracted for clarity)
+// ---------------------------------------------------------------------------
 function getLastReadAt(): string | null {
   try {
     return localStorage.getItem(LAST_READ_KEY);
@@ -20,6 +37,9 @@ function setLastReadAt(timestamp: string) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Store
+// ---------------------------------------------------------------------------
 interface ActivityState {
   activities: ActivityLog[];
   loading: boolean;
@@ -56,32 +76,22 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   fetchActivities: async (force = false) => {
     const state = get();
     const now = Date.now();
-    
-    // Skip if already loading or cache is fresh
+
     if (state.loading) return;
     if (!force && state.initialized && (now - state.lastFetch) < CACHE_DURATION) return;
-    
+
     set({ loading: true });
 
-    const { data, error } = await supabase
-      .from('activity_log')
-      .select(`
-        *,
-        actor:actor_id(id, full_name, role, employee_id),
-        target_user:target_user_id(id, full_name, role, employee_id)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(50);
+    const { data, error } = await activityServiceMod.fetchActivities();
 
     if (!error && data) {
-      const activities = data as ActivityLog[];
       const lastRead = get().lastReadAt;
       const unreadCount = lastRead
-        ? activities.filter((a) => new Date(a.created_at) > new Date(lastRead)).length
-        : activities.length;
+        ? data.filter((a) => new Date(a.created_at) > new Date(lastRead)).length
+        : data.length;
 
-      set({ 
-        activities, 
+      set({
+        activities: data,
         loading: false,
         initialized: true,
         lastFetch: Date.now(),
@@ -89,130 +99,86 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       });
     } else {
       set({ loading: false, initialized: true });
-      console.error('Error fetching activities:', error);
+      logger.error(CAT, 'fetchActivities failed', { error });
     }
   },
 
   logActivity: async (activity: ActivityLogInsert) => {
-    const { error } = await supabase.from('activity_log').insert(activity);
-    if (error) {
-      console.error('Error logging activity:', error);
-    }
+    await activityServiceMod.insertActivity(activity);
   },
 
   deleteActivity: async (activityId: string) => {
-    // Use .select() to get back deleted rows — if empty, RLS blocked it
-    const { data, error } = await supabase
-      .from('activity_log')
-      .delete()
-      .eq('id', activityId)
-      .select('id');
+    const { error } = await activityServiceMod.deleteActivityEntry(activityId);
 
-    if (error) {
-      console.error('Error deleting activity:', error);
-      return { error: error.message };
-    }
-
-    if (!data || data.length === 0) {
-      console.warn('Delete returned no rows — RLS may have blocked it, or row already deleted');
-      // Still remove from local UI state even if DB didn't confirm
-    }
-
-    // Remove from local state immediately
-    set((state) => ({
-      activities: state.activities.filter((a) => a.id !== activityId),
+    // Remove from local state regardless (optimistic)
+    set((s) => ({
+      activities: s.activities.filter((a) => a.id !== activityId),
     }));
-    return { error: null };
+
+    return { error };
   },
 
   postCustomMessage: async (actorId: string, message: string) => {
-    const activity: ActivityLogInsert = {
+    await activityServiceMod.insertActivity({
       actor_id: actorId,
       action_type: 'custom_message',
       target_user_id: null,
       task_id: null,
       message,
-    };
-    const { error } = await supabase.from('activity_log').insert(activity);
-    if (error) {
-      console.error('Error posting custom message:', error);
-    }
+    });
   },
 
   subscribeToActivities: () => {
-    const channel = supabase
-      .channel('activity_log_changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'activity_log' },
-        async (payload) => {
-          // Fetch the new activity with joined data
-          const { data } = await supabase
-            .from('activity_log')
-            .select(`
-              *,
-              actor:actor_id(id, full_name, role, employee_id),
-              target_user:target_user_id(id, full_name, role, employee_id)
-            `)
-            .eq('id', payload.new.id)
-            .single();
-
-          if (data) {
-            set((state) => ({
-              activities: [data as ActivityLog, ...state.activities].slice(0, 50),
-              unreadCount: state.unreadCount + 1,
-              toastActivity: data as ActivityLog,
-            }));
-          }
+    return activityServiceMod.subscribeToActivityChanges({
+      onInsert: async (newId: string) => {
+        const activity = await activityServiceMod.fetchActivityById(newId);
+        if (activity) {
+          set((s) => ({
+            activities: [activity, ...s.activities].slice(0, 50),
+            unreadCount: s.unreadCount + 1,
+            toastActivity: activity,
+          }));
         }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'activity_log' },
-        (payload) => {
-          const deletedId = (payload.old as { id?: string })?.id;
-          if (deletedId) {
-            set((state) => ({
-              activities: state.activities.filter((a) => a.id !== deletedId),
-            }));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      },
+      onDelete: (deletedId: string) => {
+        set((s) => ({
+          activities: s.activities.filter((a) => a.id !== deletedId),
+        }));
+      },
+    });
   },
 
   markAllRead: () => {
     const activities = get().activities;
-    if (activities.length > 0) {
-      const latestTimestamp = activities[0].created_at;
-      setLastReadAt(latestTimestamp);
-      set({ unreadCount: 0, lastReadAt: latestTimestamp });
-    } else {
-      const now = new Date().toISOString();
-      setLastReadAt(now);
-      set({ unreadCount: 0, lastReadAt: now });
-    }
+    const ts = activities.length > 0 ? activities[0].created_at : new Date().toISOString();
+    setLastReadAt(ts);
+    set({ unreadCount: 0, lastReadAt: ts });
   },
 
-  clearToast: () => {
-    set({ toastActivity: null });
-  },
+  clearToast: () => set({ toastActivity: null }),
 
   reset: () => {
-    set({ activities: [], loading: false, initialized: false, lastFetch: 0, unreadCount: 0, lastReadAt: getLastReadAt(), toastActivity: null, isPanelOpen: false });
+    set({
+      activities: [],
+      loading: false,
+      initialized: false,
+      lastFetch: 0,
+      unreadCount: 0,
+      lastReadAt: getLastReadAt(),
+      toastActivity: null,
+      isPanelOpen: false,
+    });
   },
 }));
 
-// Helper function to create activity messages
+// ---------------------------------------------------------------------------
+// Utility: build activity messages (pure function, no I/O)
+// ---------------------------------------------------------------------------
 export function createActivityMessage(
   action: ActivityLogInsert['action_type'],
   actorName: string,
   targetName?: string,
-  taskTitle?: string
+  taskTitle?: string,
 ): string {
   switch (action) {
     case 'user_added':
@@ -232,7 +198,7 @@ export function createActivityMessage(
     case 'director_approved_task':
       return `${actorName} approved task "${taskTitle}" for users`;
     case 'custom_message':
-      return ''; // Message will be the actual message content
+      return '';
     case 'password_reset_request':
       return `${actorName} reset password for ${targetName}`;
     default:

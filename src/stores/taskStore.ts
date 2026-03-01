@@ -1,15 +1,25 @@
-import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
-import type { Task, TaskStatus, ActivityLogInsert } from '../types/database';
+/**
+ * Task store — manages task list UI state.
+ *
+ * Responsibilities (SRP):
+ *  - Hold the tasks array + loading / cache flags in Zustand
+ *  - Orchestrate task workflows (create → approve → complete)
+ *  - Delegate all Supabase I/O to service modules
+ *
+ * Business logic that does NOT touch the DB (token calculation) lives in
+ * pointsService as a pure function.
+ */
 
-// Helper function to log activity
-async function logActivity(activity: ActivityLogInsert) {
-  try {
-    await supabase.from('activity_log').insert(activity);
-  } catch (err) {
-    console.error('Failed to log activity:', err);
-  }
-}
+import { create } from 'zustand';
+import type { Task, TaskStatus } from '../types/database';
+import * as taskService from '../services/taskService';
+import * as pointsService from '../services/pointsService';
+import * as activityService from '../services/activityService';
+import * as profileService from '../services/profileService';
+import { logger } from '../lib/logger';
+import { serverLog } from '../services/serverLogService';
+
+const CAT = 'taskStore';
 
 interface TaskState {
   tasks: Task[];
@@ -38,86 +48,88 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   initialized: false,
   lastFetch: 0,
 
+  // -----------------------------------------------------------------------
+  // Fetch
+  // -----------------------------------------------------------------------
   fetchTasks: async (userId?: string, role?: string, force = false) => {
     const state = get();
     const now = Date.now();
-    
-    // Skip if already loading
+
     if (state.loading) return;
-    
-    // Use cache if valid and not forcing refresh
-    if (!force && state.initialized && (now - state.lastFetch) < CACHE_DURATION) {
-      return;
-    }
-    
+    if (!force && state.initialized && (now - state.lastFetch) < CACHE_DURATION) return;
+
     set({ loading: true });
-    
+
     try {
-      let query = supabase.from('tasks').select('*');
-      
-      // Users only see their own tasks that are approved by director
-      if (role === 'User' && userId) {
-        query = query.eq('assigned_to', userId).eq('director_approved', true);
-      }
-      // Admins see all tasks (including pending director approval)
-      // Directors see all tasks
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (!error && data) {
-        set({ tasks: data, initialized: true, lastFetch: now });
+      const { data } = await taskService.fetchTasks(userId, role);
+      if (data) {
+        set({ tasks: data, initialized: true, lastFetch: Date.now() });
       }
     } catch (err) {
-      console.error('Failed to fetch tasks:', err);
+      logger.error(CAT, 'fetchTasks threw', { error: String(err) });
     } finally {
       set({ loading: false });
     }
   },
 
+  // -----------------------------------------------------------------------
+  // Create
+  // -----------------------------------------------------------------------
   createTask: async (task, creatorRole: string) => {
-    // If Director creates task, it's auto-approved
-    // If Admin creates task, it needs Director approval
+    logger.info(CAT, 'createTask — start', { title: task.title, creatorRole });
     const directorApproved = creatorRole === 'Director';
-    
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({ ...task, director_approved: directorApproved })
-      .select()
-      .single();
 
-    if (error) {
-      return { error: error.message };
+    try {
+      logger.info(CAT, 'createTask — calling insertTask');
+      const { data, error } = await taskService.insertTask(task, directorApproved);
+
+      if (error || !data) {
+        const msg = error ?? 'Failed to create task';
+        logger.error(CAT, 'createTask — insertTask returned error', { error: msg });
+        serverLog.error(CAT, 'createTask failed at insert', { error: msg, title: task.title }, task.created_by);
+        return { error: msg };
+      }
+
+      logger.info(CAT, 'createTask — insert succeeded, updating state', { taskId: data.id });
+      set((s) => ({ tasks: [data, ...s.tasks] }));
+
+      // Activity logging (best-effort, don't block return)
+      logger.debug(CAT, 'createTask — resolving profile names for activity');
+      profileService.resolveProfileNames([task.created_by, task.assigned_to])
+        .then((profiles) => {
+          const actorName = profiles.find(p => p.id === task.created_by)?.full_name || 'Someone';
+          const targetName = profiles.find(p => p.id === task.assigned_to)?.full_name || 'a user';
+
+          return activityService.insertActivity({
+            actor_id: task.created_by,
+            action_type: 'task_assigned',
+            target_user_id: task.assigned_to,
+            task_id: data.id,
+            message: `${actorName} assigned task "${task.title}" to ${targetName}`,
+          });
+        })
+        .catch((err) => {
+          logger.warn(CAT, 'createTask — activity logging failed', { error: String(err) });
+        });
+
+      logger.info(CAT, 'createTask — returning success');
+      return { error: null };
+
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'createTask — unexpected exception', { error: message });
+      serverLog.error(CAT, 'createTask exception', { error: message, title: task.title }, task.created_by);
+      return { error: message };
     }
-
-    set((state) => ({ tasks: [data, ...state.tasks] }));
-
-    // Fetch actor and target names for the activity message
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .in('id', [task.created_by, task.assigned_to]);
-
-    const actorName = profiles?.find(p => p.id === task.created_by)?.full_name || 'Someone';
-    const targetName = profiles?.find(p => p.id === task.assigned_to)?.full_name || 'a user';
-
-    // Log activity
-    await logActivity({
-      actor_id: task.created_by,
-      action_type: 'task_assigned',
-      target_user_id: task.assigned_to,
-      task_id: data.id,
-      message: `${actorName} assigned task "${task.title}" to ${targetName}`,
-    });
-
-    return { error: null };
   },
 
-  editTask: async (taskId: string, updates: { title: string; description: string; deadline: string; tokens: number; assigned_to: string }, actorId: string, actorRole: string) => {
-    // Editing a task resets director_approved — Directors' edits are auto-approved,
-    // Admins' edits require Director re-approval
+  // -----------------------------------------------------------------------
+  // Edit
+  // -----------------------------------------------------------------------
+  editTask: async (taskId, updates, actorId, actorRole) => {
     const directorApproved = actorRole === 'Director';
 
-    const updateData = {
+    const updateData: Partial<Task> = {
       title: updates.title,
       description: updates.description,
       deadline: new Date(updates.deadline).toISOString(),
@@ -129,373 +141,335 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       approved_at: null,
     };
 
-    const { error } = await supabase
-      .from('tasks')
-      .update(updateData)
-      .eq('id', taskId);
+    try {
+      const { error } = await taskService.updateTask(taskId, updateData);
+      if (error) return { error };
 
-    if (error) {
-      return { error: error.message };
+      set((s) => ({
+        tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, ...updateData } : t)),
+      }));
+
+      // Activity log (fire-and-forget — don't block return)
+      profileService.resolveProfileNames([actorId])
+        .then((profiles) => {
+          const actorName = profiles.find(p => p.id === actorId)?.full_name || 'Someone';
+          return activityService.insertActivity({
+            actor_id: actorId,
+            action_type: 'task_assigned',
+            target_user_id: updates.assigned_to,
+            task_id: taskId,
+            message: `${actorName} edited task "${updates.title}"${!directorApproved ? ' (pending director re-approval)' : ''}`,
+          });
+        })
+        .catch((err) => logger.warn(CAT, 'editTask activity log failed', { error: String(err) }));
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'editTask exception', { error: message });
+      return { error: message };
     }
-
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
-        t.id === taskId ? { ...t, ...updateData } : t
-      ),
-    }));
-
-    // Log activity
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', actorId)
-      .single();
-
-    await logActivity({
-      actor_id: actorId,
-      action_type: 'task_assigned',
-      target_user_id: updates.assigned_to,
-      task_id: taskId,
-      message: `${profile?.full_name || 'Someone'} edited task "${updates.title}"${!directorApproved ? ' (pending director re-approval)' : ''}`,
-    });
-
-    return { error: null };
   },
 
-  updateTaskStatus: async (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string, submissionNote?: string) => {
-    const updateData: Partial<Task> = { status };
-    if (submittedAt) {
-      updateData.submitted_at = submittedAt;
-    }
-    if (submissionNote !== undefined) {
-      updateData.submission_note = submissionNote;
-    }
+  // -----------------------------------------------------------------------
+  // Status update (user submits work)
+  // -----------------------------------------------------------------------
+  updateTaskStatus: async (taskId, status, actorId, submittedAt?, submissionNote?) => {
+    const extras: { submitted_at?: string; submission_note?: string } = {};
+    if (submittedAt) extras.submitted_at = submittedAt;
+    if (submissionNote !== undefined) extras.submission_note = submissionNote;
 
-    const { error } = await supabase
-      .from('tasks')
-      .update(updateData)
-      .eq('id', taskId);
+    try {
+      const { error } = await taskService.updateTaskStatus(taskId, status, Object.keys(extras).length ? extras : undefined);
+      if (error) return { error };
 
-    if (error) {
-      return { error: error.message };
-    }
+      const task = get().tasks.find(t => t.id === taskId);
 
-    const task = get().tasks.find(t => t.id === taskId);
+      set((s) => ({
+        tasks: s.tasks.map((t) =>
+          t.id === taskId ? { ...t, status, ...extras } : t,
+        ),
+      }));
 
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
-        t.id === taskId ? { ...t, ...updateData } : t
-      ),
-    }));
-
-    // Log activity for "Under Review" (user marked as done)
-    if (status === 'Under Review' && task) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', actorId)
-        .single();
-
-      await logActivity({
-        actor_id: actorId,
-        action_type: 'task_marked_done',
-        target_user_id: actorId,
-        task_id: taskId,
-        message: `${profile?.full_name || 'Someone'} submitted task "${task.title}" for review`,
-      });
-    }
-
-    return { error: null };
-  },
-
-  approveTaskByDirector: async (taskId: string, actorId: string) => {
-    const { error } = await supabase
-      .from('tasks')
-      .update({ director_approved: true })
-      .eq('id', taskId);
-
-    if (error) {
-      return { error: error.message };
-    }
-
-    const task = get().tasks.find(t => t.id === taskId);
-
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
-        t.id === taskId ? { ...t, director_approved: true } : t
-      ),
-    }));
-
-    // Log activity
-    if (task) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', actorId)
-        .single();
-
-      await logActivity({
-        actor_id: actorId,
-        action_type: 'director_approved_task',
-        target_user_id: task.assigned_to,
-        task_id: taskId,
-        message: `${profile?.full_name || 'Director'} approved task "${task.title}" for users`,
-      });
-    }
-
-    return { error: null };
-  },
-
-  approveTask: async (taskId: string, userId: string, tokens: number, deadline: string, actorId: string) => {
-    const now = new Date();
-    const deadlineDate = new Date(deadline);
-    const approvedAt = now.toISOString();
-    
-    // Token calculation:
-    //   On time → full tokens + 20% bonus (rounded up)
-    //   Late → half tokens, no bonus
-    const isOnTime = now <= deadlineDate;
-    const bonusTokens = isOnTime ? Math.ceil(tokens * 0.2) : 0;
-    const baseTokens = isOnTime ? tokens : Math.ceil(tokens * 0.5);
-    const tokensAwarded = baseTokens + bonusTokens;
-
-    const task = get().tasks.find(t => t.id === taskId);
-
-    // Update task
-    const { error: taskError } = await supabase
-      .from('tasks')
-      .update({ status: 'Completed', approved_at: approvedAt })
-      .eq('id', taskId);
-
-    if (taskError) {
-      return { error: taskError.message };
-    }
-
-    // Log points
-    const reason = isOnTime
-      ? `Task completed on time (+${bonusTokens} bonus)`
-      : 'Task completed late (half tokens, no bonus)';
-
-    const { error: logError } = await supabase.from('points_log').insert({
-      user_id: userId,
-      task_id: taskId,
-      tokens_awarded: tokensAwarded,
-      reason,
-    });
-
-    if (logError) {
-      return { error: logError.message };
-    }
-
-    // Update user's total tokens
-    if (tokensAwarded > 0) {
-      const { error: profileError } = await supabase.rpc('increment_tokens', {
-        user_id: userId,
-        amount: tokensAwarded,
-      });
-
-      if (profileError) {
-        return { error: profileError.message };
+      if (status === 'Under Review' && task) {
+        // Fire-and-forget activity log
+        profileService.resolveProfileNames([actorId])
+          .then((profiles) => {
+            const actorName = profiles.find(p => p.id === actorId)?.full_name || 'Someone';
+            return activityService.insertActivity({
+              actor_id: actorId,
+              action_type: 'task_marked_done',
+              target_user_id: actorId,
+              task_id: taskId,
+              message: `${actorName} submitted task "${task.title}" for review`,
+            });
+          })
+          .catch((err) => logger.warn(CAT, 'updateTaskStatus activity log failed', { error: String(err) }));
       }
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'updateTaskStatus exception', { error: message });
+      return { error: message };
     }
-
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
-        t.id === taskId ? { ...t, status: 'Completed' as TaskStatus, approved_at: approvedAt } : t
-      ),
-    }));
-
-    // Log activity
-    if (task) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', [actorId, userId]);
-
-      const actorName = profiles?.find(p => p.id === actorId)?.full_name || 'Someone';
-      const targetName = profiles?.find(p => p.id === userId)?.full_name || 'a user';
-
-      const tokenMsg = isOnTime
-        ? `+${tokens} tokens + ${bonusTokens} bonus`
-        : `+${baseTokens} tokens (late, no bonus)`;
-
-      await logActivity({
-        actor_id: actorId,
-        action_type: 'task_approved',
-        target_user_id: userId,
-        task_id: taskId,
-        message: `${actorName} approved task "${task.title}" for ${targetName} (${tokenMsg})`,
-      });
-    }
-
-    return { error: null };
   },
 
-  rejectTask: async (taskId: string, actorId: string) => {
+  // -----------------------------------------------------------------------
+  // Director approval
+  // -----------------------------------------------------------------------
+  approveTaskByDirector: async (taskId, actorId) => {
+    try {
+      const { error } = await taskService.approveTaskByDirector(taskId);
+      if (error) return { error };
+
+      const task = get().tasks.find(t => t.id === taskId);
+
+      set((s) => ({
+        tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, director_approved: true } : t)),
+      }));
+
+      if (task) {
+        // Fire-and-forget activity log
+        profileService.resolveProfileNames([actorId])
+          .then((profiles) => {
+            const actorName = profiles.find(p => p.id === actorId)?.full_name || 'Director';
+            return activityService.insertActivity({
+              actor_id: actorId,
+              action_type: 'director_approved_task',
+              target_user_id: task.assigned_to,
+              task_id: taskId,
+              message: `${actorName} approved task "${task.title}" for users`,
+            });
+          })
+          .catch((err) => logger.warn(CAT, 'approveTaskByDirector activity log failed', { error: String(err) }));
+      }
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'approveTaskByDirector exception', { error: message });
+      return { error: message };
+    }
+  },
+
+  // -----------------------------------------------------------------------
+  // Admin approves submitted work → award tokens
+  // -----------------------------------------------------------------------
+  approveTask: async (taskId, userId, tokens, deadline, actorId) => {
+    const approvedAt = new Date().toISOString();
+    const calc = pointsService.calculateTokens(tokens, deadline);
     const task = get().tasks.find(t => t.id === taskId);
 
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: 'Rejected' })
-      .eq('id', taskId);
+    try {
+      // 1. Complete the task
+      const { error: taskError } = await taskService.completeTask(taskId, approvedAt);
+      if (taskError) return { error: taskError };
 
-    if (error) {
-      return { error: error.message };
-    }
-
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
-        t.id === taskId ? { ...t, status: 'Rejected' as TaskStatus } : t
-      ),
-    }));
-
-    // Log activity
-    if (task) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', [actorId, task.assigned_to]);
-
-      const actorName = profiles?.find(p => p.id === actorId)?.full_name || 'Someone';
-      const targetName = profiles?.find(p => p.id === task.assigned_to)?.full_name || 'a user';
-
-      await logActivity({
-        actor_id: actorId,
-        action_type: 'task_rejected',
-        target_user_id: task.assigned_to,
+      // 2. Log points
+      const { error: logError } = await pointsService.insertPointsLog({
+        user_id: userId,
         task_id: taskId,
-        message: `${actorName} rejected task "${task.title}" from ${targetName}`,
+        tokens_awarded: calc.totalTokens,
+        reason: calc.reason,
       });
-    }
+      if (logError) return { error: logError };
 
-    return { error: null };
+      // 3. Increment user tokens
+      if (calc.totalTokens > 0) {
+        const { error: incError } = await pointsService.incrementTokens(userId, calc.totalTokens);
+        if (incError) return { error: incError };
+      }
+
+      set((s) => ({
+        tasks: s.tasks.map((t) =>
+          t.id === taskId ? { ...t, status: 'Completed' as TaskStatus, approved_at: approvedAt } : t,
+        ),
+      }));
+
+      // Activity log (fire-and-forget)
+      if (task) {
+        const tokenMsg = calc.isOnTime
+          ? `+${tokens} tokens + ${calc.bonusTokens} bonus`
+          : `+${calc.baseTokens} tokens (late, no bonus)`;
+
+        profileService.resolveProfileNames([actorId, userId])
+          .then((profiles) => {
+            const actorName = profiles.find(p => p.id === actorId)?.full_name || 'Someone';
+            const targetName = profiles.find(p => p.id === userId)?.full_name || 'a user';
+            return activityService.insertActivity({
+              actor_id: actorId,
+              action_type: 'task_approved',
+              target_user_id: userId,
+              task_id: taskId,
+              message: `${actorName} approved task "${task.title}" for ${targetName} (${tokenMsg})`,
+            });
+          })
+          .catch((err) => logger.warn(CAT, 'approveTask activity log failed', { error: String(err) }));
+      }
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'approveTask exception', { error: message });
+      return { error: message };
+    }
   },
 
-  reassignTask: async (taskId: string, actorId: string) => {
+  // -----------------------------------------------------------------------
+  // Reject
+  // -----------------------------------------------------------------------
+  rejectTask: async (taskId, actorId) => {
     const task = get().tasks.find(t => t.id === taskId);
 
-    const updateData: Partial<Task> = {
-      status: 'Pending' as TaskStatus,
-      submitted_at: null,
-      submission_note: null,
-      approved_at: null,
-    };
+    try {
+      const { error } = await taskService.updateTask(taskId, { status: 'Rejected' as TaskStatus });
+      if (error) return { error };
 
-    const { error } = await supabase
-      .from('tasks')
-      .update(updateData)
-      .eq('id', taskId);
+      set((s) => ({
+        tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, status: 'Rejected' as TaskStatus } : t)),
+      }));
 
-    if (error) {
-      return { error: error.message };
+      if (task) {
+        profileService.resolveProfileNames([actorId, task.assigned_to])
+          .then((profiles) => {
+            const actorName = profiles.find(p => p.id === actorId)?.full_name || 'Someone';
+            const targetName = profiles.find(p => p.id === task.assigned_to)?.full_name || 'a user';
+            return activityService.insertActivity({
+              actor_id: actorId,
+              action_type: 'task_rejected',
+              target_user_id: task.assigned_to,
+              task_id: taskId,
+              message: `${actorName} rejected task "${task.title}" from ${targetName}`,
+            });
+          })
+          .catch((err) => logger.warn(CAT, 'rejectTask activity log failed', { error: String(err) }));
+      }
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'rejectTask exception', { error: message });
+      return { error: message };
     }
-
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
-        t.id === taskId ? { ...t, ...updateData } : t
-      ),
-    }));
-
-    // Log activity
-    if (task) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', [actorId, task.assigned_to]);
-
-      const actorName = profiles?.find(p => p.id === actorId)?.full_name || 'Someone';
-      const targetName = profiles?.find(p => p.id === task.assigned_to)?.full_name || 'a user';
-
-      await logActivity({
-        actor_id: actorId,
-        action_type: 'task_reassigned',
-        target_user_id: task.assigned_to,
-        task_id: taskId,
-        message: `${actorName} reassigned task "${task.title}" back to ${targetName} for rework`,
-      });
-    }
-
-    return { error: null };
   },
 
-  addFeedback: async (taskId: string, feedback: string, _actorId: string) => {
-    const { error } = await supabase
-      .from('tasks')
-      .update({ admin_feedback: feedback })
-      .eq('id', taskId);
-
-    if (error) {
-      return { error: error.message };
-    }
-
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
-        t.id === taskId ? { ...t, admin_feedback: feedback } : t
-      ),
-    }));
-
-    return { error: null };
-  },
-
-  deleteTask: async (taskId: string, actorId: string) => {
+  // -----------------------------------------------------------------------
+  // Reassign (send back for rework)
+  // -----------------------------------------------------------------------
+  reassignTask: async (taskId, actorId) => {
     const task = get().tasks.find(t => t.id === taskId);
 
-    // First delete related activity_log entries that reference this task
-    await supabase.from('activity_log').delete().eq('task_id', taskId);
-    // Delete related points_log entries
-    await supabase.from('points_log').delete().eq('task_id', taskId);
+    try {
+      const { error } = await taskService.resetTaskToPending(taskId);
+      if (error) return { error };
 
-    const { error } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('id', taskId);
+      const resetFields: Partial<Task> = {
+        status: 'Pending' as TaskStatus,
+        submitted_at: null,
+        submission_note: null,
+        approved_at: null,
+      };
 
-    if (error) {
-      return { error: error.message };
+      set((s) => ({
+        tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, ...resetFields } : t)),
+      }));
+
+      if (task) {
+        profileService.resolveProfileNames([actorId, task.assigned_to])
+          .then((profiles) => {
+            const actorName = profiles.find(p => p.id === actorId)?.full_name || 'Someone';
+            const targetName = profiles.find(p => p.id === task.assigned_to)?.full_name || 'a user';
+            return activityService.insertActivity({
+              actor_id: actorId,
+              action_type: 'task_reassigned',
+              target_user_id: task.assigned_to,
+              task_id: taskId,
+              message: `${actorName} reassigned task "${task.title}" back to ${targetName} for rework`,
+            });
+          })
+          .catch((err) => logger.warn(CAT, 'reassignTask activity log failed', { error: String(err) }));
+      }
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'reassignTask exception', { error: message });
+      return { error: message };
     }
-
-    set((state) => ({
-      tasks: state.tasks.filter((t) => t.id !== taskId),
-    }));
-
-    // Log activity
-    if (task) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', actorId)
-        .single();
-
-      await logActivity({
-        actor_id: actorId,
-        action_type: 'task_deleted',
-        target_user_id: task.assigned_to,
-        task_id: null,
-        message: `${profile?.full_name || 'Someone'} deleted task "${task.title}"`,
-      });
-    }
-
-    return { error: null };
   },
 
+  // -----------------------------------------------------------------------
+  // Feedback
+  // -----------------------------------------------------------------------
+  addFeedback: async (taskId, feedback, _actorId) => {
+    try {
+      const { error } = await taskService.setTaskFeedback(taskId, feedback);
+      if (error) return { error };
+
+      set((s) => ({
+        tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, admin_feedback: feedback } : t)),
+      }));
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'addFeedback exception', { error: message });
+      return { error: message };
+    }
+  },
+
+  // -----------------------------------------------------------------------
+  // Delete
+  // -----------------------------------------------------------------------
+  deleteTask: async (taskId, actorId) => {
+    const task = get().tasks.find(t => t.id === taskId);
+
+    try {
+      // Clean up related rows first
+      await activityService.deleteActivitiesByTask(taskId);
+      await pointsService.deletePointsLogByTask(taskId);
+
+      const { error } = await taskService.deleteTaskById(taskId);
+      if (error) return { error };
+
+      set((s) => ({ tasks: s.tasks.filter((t) => t.id !== taskId) }));
+
+      if (task) {
+        profileService.resolveProfileNames([actorId])
+          .then((profiles) => {
+            const actorName = profiles.find(p => p.id === actorId)?.full_name || 'Someone';
+            return activityService.insertActivity({
+              actor_id: actorId,
+              action_type: 'task_deleted',
+              target_user_id: task.assigned_to,
+              task_id: null,
+              message: `${actorName} deleted task "${task.title}"`,
+            });
+          })
+          .catch((err) => logger.warn(CAT, 'deleteTask activity log failed', { error: String(err) }));
+      }
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'deleteTask exception', { error: message });
+      return { error: message };
+    }
+  },
+
+  // -----------------------------------------------------------------------
+  // Realtime subscription
+  // -----------------------------------------------------------------------
   subscribeToTasks: () => {
-    const channel = supabase
-      .channel('tasks-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'tasks' },
-        () => {
-          // Refetch tasks on any change (force refresh)
-          get().fetchTasks(undefined, undefined, true);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return taskService.subscribeToTaskChanges(() => {
+      get().fetchTasks(undefined, undefined, true);
+    });
   },
 
+  // -----------------------------------------------------------------------
+  // Reset
+  // -----------------------------------------------------------------------
   reset: () => {
     set({ tasks: [], loading: false, initialized: false, lastFetch: 0 });
   },

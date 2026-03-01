@@ -1,30 +1,25 @@
+/**
+ * User store — manages user-list, leaderboard, and password-reset UI state.
+ *
+ * Responsibilities (SRP):
+ *  - Hold users / leaderboard / password-reset-requests in Zustand
+ *  - Orchestrate create / delete / token-giving workflows
+ *  - Delegate all Supabase I/O to service modules
+ *
+ * The signUpClient and env-var re-reads that were here have been moved to
+ * lib/supabase.ts.  The duplicated logActivity helper is replaced by
+ * activityService.insertActivity.
+ */
+
 import { create } from 'zustand';
-import { createClient } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
-import type { Profile, ActivityLogInsert, PasswordResetRequest } from '../types/database';
+import type { Profile, PasswordResetRequest } from '../types/database';
+import * as profileService from '../services/profileService';
+import * as userServiceMod from '../services/userService';
+import * as pointsService from '../services/pointsService';
+import * as activityService from '../services/activityService';
+import { logger } from '../lib/logger';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-// Single isolated client for signUp — never persists sessions, never interferes with admin
-// Created once at module level to avoid "Multiple GoTrueClient instances" warnings.
-const signUpClient = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
-    storageKey: 'sb-signup-isolated', // unique key so it never collides with main client
-  },
-});
-
-// Helper function to log activity
-async function logActivity(activity: ActivityLogInsert) {
-  try {
-    await supabase.from('activity_log').insert(activity);
-  } catch (err) {
-    console.error('Failed to log activity:', err);
-  }
-}
+const CAT = 'userStore';
 
 interface UserState {
   users: Profile[];
@@ -54,167 +49,119 @@ export const useUserStore = create<UserState>((set, get) => ({
   initialized: false,
   lastFetch: 0,
 
+  // -----------------------------------------------------------------------
+  // Fetch users
+  // -----------------------------------------------------------------------
   fetchUsers: async (force = false) => {
     const state = get();
     const now = Date.now();
-    
-    // For forced calls (after create/delete), always proceed and reset loading if stuck
+
     if (!force) {
       if (state.loading) return;
       if (state.initialized && (now - state.lastFetch) < CACHE_DURATION) return;
     }
-    
+
     set({ loading: true });
-    
+
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('employee_id', { ascending: true });
-      
-      if (!error && data) {
+      const { data } = await profileService.fetchAllProfiles();
+      if (data) {
         set({ users: data, initialized: true, lastFetch: Date.now() });
       }
     } catch (err) {
-      console.error('Failed to fetch users:', err);
+      logger.error(CAT, 'fetchUsers threw', { error: String(err) });
     } finally {
       set({ loading: false });
     }
   },
 
+  // -----------------------------------------------------------------------
+  // Leaderboard
+  // -----------------------------------------------------------------------
   fetchLeaderboard: async (force = false) => {
     const state = get();
     const now = Date.now();
-    
-    // Use cache if valid and not forcing refresh
-    if (!force && state.leaderboard.length > 0 && (now - state.lastFetch) < CACHE_DURATION) {
-      return;
-    }
-    
+
+    if (!force && state.leaderboard.length > 0 && (now - state.lastFetch) < CACHE_DURATION) return;
+
     try {
-      // Include both Users and Admins, only those with > 0 tokens
-      // Sort by tokens descending, then employee_id ascending as tiebreaker
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('role', ['User', 'Admin'])
-        .gt('total_tokens', 0)
-        .order('total_tokens', { ascending: false })
-        .order('employee_id', { ascending: true })
-        .limit(50);
-      
-      if (!error && data) {
+      const { data } = await profileService.fetchLeaderboard();
+      if (data) {
         set({ leaderboard: data });
       }
     } catch (err) {
-      console.error('Failed to fetch leaderboard:', err);
+      logger.error(CAT, 'fetchLeaderboard threw', { error: String(err) });
     }
   },
 
-  createUser: async (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string) => {
-    // Two-step approach:
-    //   Step A: Create auth user via GoTrue signUp (proper record GoTrue can authenticate)
-    //   Step B: Confirm email + create profile via admin_setup_user RPC
-    //
-    // Edge cases handled:
-    //   - User already in auth.users but no profile (orphan from prior failed attempt) → just setup
-    //   - User fully exists (auth + profile) → error "already exists"
-    //   - Brand new user → signUp + setup
+  // -----------------------------------------------------------------------
+  // Create user
+  // -----------------------------------------------------------------------
+  createUser: async (email, password, fullName, role, actorId, actorName) => {
+    logger.info(CAT, 'createUser', { email, role });
+
     try {
       let userId: string | null = null;
 
-      // --- Step A: Try signUp ---
-      const { data: signUpData, error: signUpError } = await signUpClient.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: fullName, role },
-        },
-      });
+      // Step A: Try signUp
+      const signUpResult = await userServiceMod.signUpAuthUser(email, password, fullName, role);
 
-      if (signUpError) {
-        const msg = signUpError.message.toLowerCase();
-
-        // "User already registered" → check if they have a profile (orphan recovery)
-        if (msg.includes('already registered') || msg.includes('already been registered') || signUpError.status === 422) {
-          const { data: lookupData, error: lookupError } = await supabase.rpc('admin_get_user_id_by_email', {
-            p_email: email,
-          });
-
-          if (lookupError) {
-            return { error: `Could not check existing user: ${lookupError.message}` };
-          }
-
-          const lookup = lookupData as { exists: boolean; user_id?: string; has_profile?: boolean } | null;
-
-          if (!lookup?.exists || !lookup.user_id) {
+      if (signUpResult.error) {
+        if (signUpResult.isOrphan) {
+          // Check for orphan (auth record exists, no profile)
+          const lookup = await userServiceMod.lookupUserByEmail(email);
+          if (lookup.error) return { error: `Could not check existing user: ${lookup.error}` };
+          if (!lookup.exists || !lookup.userId) {
             return { error: 'User already registered but could not be found. Please contact support.' };
           }
-
-          if (lookup.has_profile) {
+          if (lookup.hasProfile) {
             return { error: 'A user with this email already exists.' };
           }
-
-          // Orphan: auth record exists but no profile → recover by setting up profile
-          userId = lookup.user_id;
+          userId = lookup.userId;
         } else {
-          return { error: signUpError.message };
+          return { error: signUpResult.error };
         }
       } else {
-        // signUp succeeded
-        userId = signUpData.user?.id ?? null;
-        if (!userId) {
-          return { error: 'Sign up succeeded but no user ID was returned.' };
-        }
+        userId = signUpResult.userId;
+        if (!userId) return { error: 'Sign up succeeded but no user ID was returned.' };
       }
 
-      // --- Step B: Confirm email + create profile ---
-      const { data, error: setupError } = await supabase.rpc('admin_setup_user', {
-        p_user_id: userId,
-        p_full_name: fullName,
-        p_role: role,
-      });
-
-      if (setupError) {
-        return { error: setupError.message };
+      // Step B: Confirm email + create profile
+      const setup = await userServiceMod.setupUserProfile(userId!, fullName, role);
+      if (setup.error || !setup.data) {
+        return { error: setup.error ?? 'User created but profile setup returned an unexpected response.' };
       }
 
-      const result = data as { user_id: string; employee_id: string } | null;
-      if (!result?.user_id || !result?.employee_id) {
-        return { error: 'User created but profile setup returned an unexpected response.' };
-      }
-
-      // Log activity (fire-and-forget, don't block user creation)
-      logActivity({
+      // Activity log (fire-and-forget)
+      activityService.insertActivity({
         actor_id: actorId,
         action_type: 'user_added',
-        target_user_id: result.user_id,
+        target_user_id: setup.data.userId,
         task_id: null,
         message: `${actorName} added ${fullName} as ${role}`,
       }).catch(() => {});
 
-      // Refresh users list in background (don't block the modal)
+      // Refresh users list in background
       get().fetchUsers(true).catch(() => {});
-      return { error: null, employeeId: result.employee_id };
+      return { error: null, employeeId: setup.data.employeeId };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An unexpected error occurred while creating the user';
+      logger.error(CAT, 'createUser threw', { error: message });
       return { error: message };
     }
   },
 
-  giveTokens: async (targetUserId: string, amount: number, reason: string, actorId: string, actorName: string, targetName: string) => {
+  // -----------------------------------------------------------------------
+  // Give tokens
+  // -----------------------------------------------------------------------
+  giveTokens: async (targetUserId, amount, reason, actorId, actorName, targetName) => {
+    logger.info(CAT, 'giveTokens', { targetUserId, amount });
+
     try {
-      const { error: rpcError } = await supabase.rpc('increment_tokens', {
-        user_id: targetUserId,
-        amount,
-      });
+      const { error } = await pointsService.incrementTokens(targetUserId, amount);
+      if (error) return { error };
 
-      if (rpcError) {
-        return { error: rpcError.message };
-      }
-
-      // Log activity (fire-and-forget)
-      logActivity({
+      activityService.insertActivity({
         actor_id: actorId,
         action_type: 'tokens_given',
         target_user_id: targetUserId,
@@ -222,105 +169,74 @@ export const useUserStore = create<UserState>((set, get) => ({
         message: `${actorName} gave ${amount} tokens to ${targetName}${reason ? ` — ${reason}` : ''}`,
       }).catch(() => {});
 
-      // Refresh users & leaderboard in background
       get().fetchUsers(true).catch(() => {});
       get().fetchLeaderboard(true).catch(() => {});
 
       return { error: null };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to give tokens';
+      logger.error(CAT, 'giveTokens threw', { error: message });
       return { error: message };
     }
   },
 
-  deleteUser: async (userId: string) => {
-    // Use RPC to properly handle FK constraints and delete auth user
-    const { error } = await supabase.rpc('admin_delete_user', {
-      p_target_user_id: userId,
-    });
+  // -----------------------------------------------------------------------
+  // Delete user
+  // -----------------------------------------------------------------------
+  deleteUser: async (userId) => {
+    logger.info(CAT, 'deleteUser', { userId });
 
-    if (error) {
-      return { error: error.message };
-    }
+    const { error } = await userServiceMod.deleteUser(userId);
+    if (error) return { error };
 
-    // Optimistically update local state
-    set((state) => ({
-      users: state.users.filter((u) => u.id !== userId),
-    }));
-
+    set((s) => ({ users: s.users.filter((u) => u.id !== userId) }));
     return { error: null };
   },
 
+  // -----------------------------------------------------------------------
+  // Password-reset requests
+  // -----------------------------------------------------------------------
   fetchPasswordResetRequests: async () => {
-    const { data, error } = await supabase
-      .from('password_reset_requests')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      set({ passwordResetRequests: data as PasswordResetRequest[] });
+    const { data } = await userServiceMod.fetchPendingPasswordResets();
+    if (data) {
+      set({ passwordResetRequests: data });
     }
   },
 
-  resetUserPassword: async (userId: string, newPassword: string, requestId: string, actorId: string, actorName: string, userEmail: string) => {
-    // Call the RPC function to reset the password
-    const { error: rpcError } = await supabase.rpc('admin_reset_user_password', {
-      target_user_id: userId,
-      new_password: newPassword,
-    });
+  resetUserPassword: async (userId, newPassword, requestId, actorId, actorName, userEmail) => {
+    logger.info(CAT, 'resetUserPassword', { userId, requestId });
 
-    if (rpcError) {
-      return { error: rpcError.message };
-    }
+    const { error } = await userServiceMod.resetUserPassword(userId, newPassword, requestId, actorId);
+    if (error) return { error };
 
-    // Mark the request as approved
-    await supabase
-      .from('password_reset_requests')
-      .update({
-        status: 'approved',
-        resolved_by: actorId,
-        resolved_at: new Date().toISOString(),
-      })
-      .eq('id', requestId);
-
-    // Log activity
-    await logActivity({
+    activityService.insertActivity({
       actor_id: actorId,
       action_type: 'password_reset_request',
       target_user_id: userId,
       task_id: null,
       message: `${actorName} reset password for ${userEmail}`,
-    });
+    }).catch(() => {});
 
-    // Refresh requests and users
     await get().fetchPasswordResetRequests();
     await get().fetchUsers(true);
 
     return { error: null };
   },
 
-  dismissPasswordResetRequest: async (requestId: string) => {
-    const { error } = await supabase
-      .from('password_reset_requests')
-      .update({
-        status: 'dismissed',
-        resolved_at: new Date().toISOString(),
-      })
-      .eq('id', requestId);
+  dismissPasswordResetRequest: async (requestId) => {
+    const { error } = await userServiceMod.dismissPasswordResetRequest(requestId);
+    if (error) return { error };
 
-    if (error) {
-      return { error: error.message };
-    }
-
-    // Update local state
-    set((state) => ({
-      passwordResetRequests: state.passwordResetRequests.filter((r) => r.id !== requestId),
+    set((s) => ({
+      passwordResetRequests: s.passwordResetRequests.filter((r) => r.id !== requestId),
     }));
 
     return { error: null };
   },
 
+  // -----------------------------------------------------------------------
+  // Reset
+  // -----------------------------------------------------------------------
   reset: () => {
     set({ users: [], leaderboard: [], passwordResetRequests: [], loading: false, initialized: false, lastFetch: 0 });
   },
