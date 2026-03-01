@@ -4,9 +4,9 @@ import { ActivityButton, ActivityToast } from '../dashboard/ActivityNotification
 
 export function DashboardLayout() {
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: 'var(--bg-main)' }}>
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-main)' }}>
       <Sidebar />
-      <main className="flex-1 overflow-auto safe-bottom">
+      <main className="flex-1 overflow-y-auto safe-bottom">
         {/* Mobile header bar — solid backdrop behind hamburger & activity bell */}
         <div 
           className="fixed top-0 left-0 right-0 h-14 z-30 border-b lg:hidden"

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { useTaskStore } from '../../stores/taskStore';
+import { useUserStore } from '../../stores/userStore';
 import { TaskCard } from '../tasks/TaskCard';
 import { CreateTaskModal } from '../tasks/CreateTaskModal';
 import { StatCard } from '../ui/StatCard';
@@ -18,14 +19,16 @@ import type { TaskStatus } from '../../types/database';
 export function AdminDashboard() {
   const { profile } = useAuthStore();
   const { tasks, fetchTasks, subscribeToTasks } = useTaskStore();
+  const { fetchUsers } = useUserStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'All'>('All');
 
   useEffect(() => {
     fetchTasks(undefined, profile?.role);
+    fetchUsers();
     const unsubscribe = subscribeToTasks();
     return () => unsubscribe();
-  }, [fetchTasks, subscribeToTasks, profile?.role]);
+  }, [fetchTasks, fetchUsers, subscribeToTasks, profile?.role]);
 
   const stats = {
     totalTasks: tasks.length,

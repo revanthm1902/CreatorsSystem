@@ -29,7 +29,7 @@ interface TaskState {
   _lastUserId: string | undefined;
   _lastRole: string | undefined;
   fetchTasks: (userId?: string, role?: string, force?: boolean) => Promise<void>;
-  createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback'>, creatorRole: string) => Promise<{ error: string | null }>;
+  createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback' | 'original_deadline'>, creatorRole: string) => Promise<{ error: string | null }>;
   editTask: (taskId: string, updates: { title: string; description: string; deadline: string; tokens: number; assigned_to: string }, actorId: string, actorRole: string) => Promise<{ error: string | null }>;
   updateTaskStatus: (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string, submissionNote?: string) => Promise<{ error: string | null }>;
   approveTask: (taskId: string, userId: string, tokens: number, deadline: string, actorId: string) => Promise<{ error: string | null }>;
@@ -37,6 +37,7 @@ interface TaskState {
   reassignTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   approveTaskByDirector: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   addFeedback: (taskId: string, feedback: string) => Promise<{ error: string | null }>;
+  extendDeadline: (taskId: string, newDeadline: string, actorId: string) => Promise<{ error: string | null }>;
   deleteTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   subscribeToTasks: () => () => void;
   reset: () => void;
@@ -59,8 +60,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const state = get();
     const now = Date.now();
 
-    if (state.loading) return;
-    if (!force && state.initialized && (now - state.lastFetch) < CACHE_DURATION) return;
+    if (!force) {
+      if (state.loading) return;
+      if (state.initialized && (now - state.lastFetch) < CACHE_DURATION) return;
+    }
 
     set({ loading: true, _lastUserId: userId, _lastRole: role });
 
@@ -458,6 +461,58 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(CAT, 'deleteTask exception', { error: message });
+      return { error: message };
+    }
+  },
+
+  // -----------------------------------------------------------------------
+  // Extend deadline
+  // -----------------------------------------------------------------------
+  extendDeadline: async (taskId, newDeadline, actorId) => {
+    try {
+      const task = get().tasks.find((t) => t.id === taskId);
+      if (!task) return { error: 'Task not found' };
+
+      const { error } = await taskService.extendDeadline(
+        taskId,
+        task.deadline,
+        new Date(newDeadline).toISOString(),
+        task.original_deadline,
+      );
+
+      if (error) return { error };
+
+      // Update local state
+      set((s) => ({
+        tasks: s.tasks.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                original_deadline: t.original_deadline || t.deadline,
+                deadline: new Date(newDeadline).toISOString(),
+              }
+            : t,
+        ),
+      }));
+
+      // Log activity
+      profileService.resolveProfileNames([actorId])
+        .then((profiles) => {
+          const actorName = profiles.find(p => p.id === actorId)?.full_name || 'Someone';
+          return activityService.insertActivity({
+            actor_id: actorId,
+            action_type: 'deadline_extended',
+            target_user_id: task.assigned_to,
+            task_id: taskId,
+            message: `${actorName} extended deadline for "${task.title}"`,
+          });
+        })
+        .catch((err) => logger.warn(CAT, 'extendDeadline activity log failed', { error: String(err) }));
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'extendDeadline exception', { error: message });
       return { error: message };
     }
   },

@@ -21,6 +21,7 @@ import {
   Trash2,
   KeyRound,
   Gift,
+  Clock,
 } from 'lucide-react';
 
 export const actionIcons: Record<ActivityType, typeof Bell> = {
@@ -35,6 +36,7 @@ export const actionIcons: Record<ActivityType, typeof Bell> = {
   director_approved_task: ShieldCheck,
   custom_message: MessageSquare,
   task_deleted: Trash2,
+  deadline_extended: Clock,
   password_reset_request: KeyRound,
   tokens_given: Gift,
 };
@@ -51,6 +53,7 @@ export const actionColors: Record<ActivityType, string> = {
   director_approved_task: 'bg-orange-500/20 text-orange-500',
   custom_message: 'bg-cyan-500/20 text-cyan-500',
   task_deleted: 'bg-rose-500/20 text-rose-500',
+  deadline_extended: 'bg-amber-500/20 text-amber-500',
   password_reset_request: 'bg-yellow-500/20 text-yellow-500',
   tokens_given: 'bg-emerald-500/20 text-emerald-500',
 };

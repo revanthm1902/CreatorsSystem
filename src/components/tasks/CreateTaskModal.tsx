@@ -19,7 +19,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
   const [error, setError] = useState('');
 
   const { createTask } = useTaskStore();
-  const { users, fetchUsers } = useUserStore();
+  const { users, fetchUsers, loading: usersLoading } = useUserStore();
   const { profile } = useAuthStore();
 
   useEffect(() => {
@@ -134,10 +134,11 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
               value={assignedTo}
               onChange={(e) => setAssignedTo(e.target.value)}
               required
+              disabled={usersLoading && userOptions.length === 0}
               className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
             >
-              <option value="">Select a user</option>
+              <option value="">{usersLoading && userOptions.length === 0 ? 'Loading users...' : 'Select a user'}</option>
               {userOptions.map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.full_name} ({user.employee_id})
