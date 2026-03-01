@@ -514,5 +514,41 @@ GRANT USAGE ON SCHEMA extensions TO authenticator, anon, authenticated, service_
 -- Enable replica identity full for activity_log (needed for realtime DELETE events)
 ALTER TABLE public.activity_log REPLICA IDENTITY FULL;
 
+-- 21. Server-side system logs table
+-- Persists structured logs from the frontend so they survive browser reloads
+-- and can be inspected even when the browser console is closed.
+CREATE TABLE IF NOT EXISTS public.system_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  level TEXT NOT NULL DEFAULT 'INFO' CHECK (level IN ('DEBUG', 'INFO', 'WARN', 'ERROR')),
+  category TEXT NOT NULL,
+  message TEXT NOT NULL,
+  data JSONB,
+  user_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON public.system_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_system_logs_level ON public.system_logs(level);
+CREATE INDEX IF NOT EXISTS idx_system_logs_category ON public.system_logs(category);
+
+ALTER TABLE public.system_logs ENABLE ROW LEVEL SECURITY;
+
+-- Any authenticated user can insert logs (needed so the frontend can write)
+CREATE POLICY "Authenticated users can insert system logs"
+  ON public.system_logs FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- Only Directors can read logs (security: don't expose logs to regular users)
+CREATE POLICY "Directors can view system logs"
+  ON public.system_logs FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'Director')
+  );
+
+-- Auto-cleanup: keep only last 30 days of logs (run manually or via cron)
+-- DELETE FROM public.system_logs WHERE created_at < NOW() - INTERVAL '30 days';
+
 -- Force PostgREST to reload its schema cache after function changes
 NOTIFY pgrst, 'reload schema';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
-import { supabase } from '../lib/supabase';
+import { submitPasswordResetRequest } from '../services/userService';
 import { LogIn, Eye, EyeOff, HelpCircle, Sun, Moon, KeyRound, ArrowLeft, CheckCircle, Mail } from 'lucide-react';
 
 export function LoginPage() {
@@ -199,11 +199,9 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
     setResetError('');
 
     try {
-      const { error } = await supabase
-        .from('password_reset_requests')
-        .insert({ email: resetEmail.trim().toLowerCase(), status: 'pending' });
+      const { error: submitError } = await submitPasswordResetRequest(resetEmail);
 
-      if (error) {
+      if (submitError) {
         setResetError('Failed to submit request. Please try again.');
       } else {
         setSubmitted(true);
