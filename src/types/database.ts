@@ -26,6 +26,7 @@ export interface Task {
   title: string;
   description: string;
   deadline: string;
+  original_deadline: string | null;
   tokens: number;
   status: TaskStatus;
   director_approved: boolean;
@@ -58,6 +59,7 @@ export type ActivityType =
   | 'director_approved_task'
   | 'custom_message'
   | 'task_deleted'
+  | 'deadline_extended'
   | 'password_reset_request'
   | 'tokens_given';
 

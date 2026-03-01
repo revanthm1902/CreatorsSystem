@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTaskStore } from '../stores/taskStore';
 import { useAuthStore } from '../stores/authStore';
+import { useUserStore } from '../stores/userStore';
 import { TaskCard } from '../components/tasks/TaskCard';
 import { CreateTaskModal } from '../components/tasks/CreateTaskModal';
 import { Plus, ClipboardList, Filter, ShieldAlert, Loader2 } from 'lucide-react';
@@ -9,14 +10,16 @@ import type { TaskStatus } from '../types/database';
 export function TasksPage() {
   const { profile } = useAuthStore();
   const { tasks, fetchTasks, subscribeToTasks, loading, initialized } = useTaskStore();
+  const { fetchUsers } = useUserStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'All'>('All');
 
   useEffect(() => {
     fetchTasks(profile?.role === 'User' ? profile?.id : undefined, profile?.role);
+    fetchUsers();
     const unsubscribe = subscribeToTasks();
     return () => unsubscribe();
-  }, [fetchTasks, subscribeToTasks, profile?.id, profile?.role]);
+  }, [fetchTasks, fetchUsers, subscribeToTasks, profile?.id, profile?.role]);
 
   const isAdmin = profile?.role === 'Director' || profile?.role === 'Admin';
   const isDirector = profile?.role === 'Director';

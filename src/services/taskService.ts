@@ -15,22 +15,7 @@ import type { Task, TaskStatus } from '../types/database';
 
 const CAT = 'taskService';
 
-// ---------------------------------------------------------------------------
-// Timeout helper — prevents hanging Supabase calls from blocking the UI forever
-// ---------------------------------------------------------------------------
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`${label} timed out after ${ms}ms`));
-    }, ms);
-    promise.then(
-      (val) => { clearTimeout(timer); resolve(val); },
-      (err) => { clearTimeout(timer); reject(err); },
-    );
-  });
-}
-
-const DEFAULT_TIMEOUT = 15_000; // 15 seconds
+const DEFAULT_TIMEOUT = 30_000; // 30 seconds
 
 /** Fetch tasks — optionally scoped to a single user's approved tasks. */
 export async function fetchTasks(
@@ -58,7 +43,7 @@ export async function fetchTasks(
 
 /** Insert a new task. Returns the created row. */
 export async function insertTask(
-  task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback'>,
+  task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback' | 'original_deadline'>,
   directorApproved: boolean,
 ): Promise<{ data: Task | null; error: string | null }> {
   const payload = { ...task, director_approved: directorApproved };
@@ -81,17 +66,25 @@ export async function insertTask(
   }, task.created_by);
 
   try {
-    const queryPromise = Promise.resolve(
-      supabase
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+
+    let data: Task | null = null;
+    let error: { code?: string; message: string; details?: string; hint?: string } | null = null;
+
+    try {
+      const result = await supabase
         .from('tasks')
         .insert(payload)
         .select()
-        .single(),
-    );
+        .abortSignal(controller.signal)
+        .single();
 
-    const result = await withTimeout(queryPromise, DEFAULT_TIMEOUT, 'insertTask');
-
-    const { data, error } = result;
+      data = result.data;
+      error = result.error;
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (error) {
       logger.error(CAT, 'insertTask — Supabase returned error', {
@@ -124,8 +117,11 @@ export async function insertTask(
     return { data, error: null };
 
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    logger.error(CAT, 'insertTask — exception thrown', { error: message });
+    const isAbort = err instanceof DOMException && err.name === 'AbortError';
+    const message = isAbort
+      ? 'Request timed out — please try again'
+      : (err instanceof Error ? err.message : String(err));
+    logger.error(CAT, 'insertTask — exception thrown', { error: message, aborted: isAbort });
     serverLog.error(CAT, 'insertTask exception', { error: message, title: task.title }, task.created_by);
     return { data: null, error: message };
   }
@@ -255,6 +251,37 @@ export async function deleteTaskById(taskId: string): Promise<{ error: string | 
 
   if (error) {
     logger.error(CAT, 'deleteTaskById failed', { taskId, error: error.message });
+    return { error: error.message };
+  }
+
+  return { error: null };
+}
+
+/** Extend the deadline of a task, saving the original if not already saved. */
+export async function extendDeadline(
+  taskId: string,
+  currentDeadline: string,
+  newDeadline: string,
+  originalDeadline: string | null,
+): Promise<{ error: string | null }> {
+  logger.info(CAT, 'extendDeadline', { taskId, newDeadline });
+
+  const updates: Record<string, unknown> = {
+    deadline: newDeadline,
+  };
+
+  // Keep the first original deadline — don't overwrite on subsequent extensions
+  if (!originalDeadline) {
+    updates.original_deadline = currentDeadline;
+  }
+
+  const { error } = await supabase
+    .from('tasks')
+    .update(updates)
+    .eq('id', taskId);
+
+  if (error) {
+    logger.error(CAT, 'extendDeadline failed', { taskId, error: error.message });
     return { error: error.message };
   }
 

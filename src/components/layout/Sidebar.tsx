@@ -300,7 +300,7 @@ export function Sidebar() {
       <aside 
         className={`${
           collapsed ? 'w-20' : 'w-72'
-        } hidden lg:flex flex-col h-screen sticky top-0 border-r animate-fade-in transition-all duration-300`}
+        } hidden lg:flex flex-col h-screen shrink-0 border-r animate-fade-in transition-all duration-300 overflow-y-auto`}
         style={{ 
           backgroundColor: 'var(--bg-card)', 
           borderColor: 'var(--border-color)' 

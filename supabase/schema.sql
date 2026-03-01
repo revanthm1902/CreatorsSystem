@@ -52,6 +52,9 @@ ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS director_approved BOOLEAN DEFA
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS submission_note TEXT;
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS admin_feedback TEXT;
 
+-- Migration: Add original_deadline column to track deadline extensions
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS original_deadline TIMESTAMPTZ;
+
 -- 3. Create points log table
 CREATE TABLE IF NOT EXISTS public.points_log (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
