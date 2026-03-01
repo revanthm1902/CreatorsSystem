@@ -19,12 +19,10 @@ import {
 
 interface TaskDetailModalProps {
   task: Task;
-  isOpen: boolean;
   onClose: () => void;
 }
 
-export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps) {
-  if (!isOpen) return null;
+export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
 
   return (
     <div

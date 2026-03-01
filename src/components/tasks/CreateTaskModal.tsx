@@ -6,11 +6,10 @@ import { useAuthStore } from '../../stores/authStore';
 import { getMinDateTimeLocal } from '../../lib/dateUtils';
 
 interface CreateTaskModalProps {
-  isOpen: boolean;
   onClose: () => void;
 }
 
-export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
+export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
@@ -24,10 +23,8 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
   const { profile } = useAuthStore();
 
   useEffect(() => {
-    if (isOpen) {
-      fetchUsers();
-    }
-  }, [isOpen, fetchUsers]);
+    fetchUsers();
+  }, [fetchUsers]);
 
   const userOptions = users.filter((u) => u.role === 'User');
 
@@ -66,14 +63,12 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
         setTokens(10);
         onClose();
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
-
-  if (!isOpen) return null;
 
   // Compute minimum datetime (current time formatted for datetime-local input)
   const minDateTime = getMinDateTimeLocal();

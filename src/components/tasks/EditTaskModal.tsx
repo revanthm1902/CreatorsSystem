@@ -7,7 +7,6 @@ import { getMinDateTimeLocal } from '../../lib/dateUtils';
 import type { Task } from '../../types/database';
 
 interface EditTaskModalProps {
-  isOpen: boolean;
   onClose: () => void;
   task: Task;
 }
@@ -22,7 +21,7 @@ function formatDeadlineForInput(isoDate: string): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
+export function EditTaskModal({ onClose, task }: EditTaskModalProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || '');
   const [assignedTo, setAssignedTo] = useState(task.assigned_to);
@@ -36,22 +35,8 @@ export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
   const { profile } = useAuthStore();
 
   useEffect(() => {
-    if (isOpen) {
-      fetchUsers();
-      // Reset form to match latest task data when modal opens
-    }
-  }, [isOpen, fetchUsers]);
-
-  // Sync form fields when the task prop changes (e.g., modal reopened for a different task)
-  useEffect(() => {
-    setTitle(task.title);
-    setDescription(task.description || '');
-    setAssignedTo(task.assigned_to);
-    setDeadline(formatDeadlineForInput(task.deadline));
-    setTokens(task.tokens);
-    setError('');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task.id]);
+    fetchUsers();
+  }, [fetchUsers]);
 
   const userOptions = users.filter((u) => u.role === 'User');
 
@@ -87,14 +72,12 @@ export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
       } else {
         onClose();
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
-
-  if (!isOpen) return null;
 
   // Compute minimum datetime (current time)
   const minDateTime = getMinDateTimeLocal();

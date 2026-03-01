@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 
 interface CreateUserModalProps {
-  isOpen: boolean;
   onClose: () => void;
   canCreateAdmin: boolean;
   actorId: string;
@@ -17,7 +16,7 @@ interface CreateUserModalProps {
   createUser: (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string) => Promise<{ error: string | null; employeeId?: string }>;
 }
 
-export function CreateUserModal({ isOpen, onClose, canCreateAdmin, actorId, actorName, createUser }: CreateUserModalProps) {
+export function CreateUserModal({ onClose, canCreateAdmin, actorId, actorName, createUser }: CreateUserModalProps) {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
@@ -33,27 +32,28 @@ export function CreateUserModal({ isOpen, onClose, canCreateAdmin, actorId, acto
     setSuccess(null);
     setLoading(true);
 
-    const result = await createUser(email, password, fullName, role, actorId, actorName);
-    setLoading(false);
+    try {
+      const result = await createUser(email, password, fullName, role, actorId, actorName);
 
-    if (result.error) {
-      setError(result.error);
-    } else if (result.employeeId) {
-      setSuccess({ employeeId: result.employeeId });
-      setEmail('');
-      setFullName('');
-      setPassword('');
-      setRole('User');
+      if (result.error) {
+        setError(result.error);
+      } else if (result.employeeId) {
+        setSuccess({ employeeId: result.employeeId });
+        setEmail('');
+        setFullName('');
+        setPassword('');
+        setRole('User');
+      }
+    } catch {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleClose = () => {
-    setError('');
-    setSuccess(null);
     onClose();
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">

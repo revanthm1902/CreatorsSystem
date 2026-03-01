@@ -300,15 +300,16 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
       </div>
 
       {/* Modals */}
-      <TaskDetailModal task={task} isOpen={showDetail} onClose={() => setShowDetail(false)} />
-      <EditTaskModal task={task} isOpen={showEditModal} onClose={() => setShowEditModal(false)} />
-      <SubmitTaskModal
-        taskTitle={task.title}
-        isOpen={showSubmitModal}
-        loading={loading}
-        onSubmit={handleSubmit}
-        onClose={() => setShowSubmitModal(false)}
-      />
+      {showDetail && <TaskDetailModal task={task} onClose={() => setShowDetail(false)} />}
+      {showEditModal && <EditTaskModal task={task} onClose={() => setShowEditModal(false)} />}
+      {showSubmitModal && (
+        <SubmitTaskModal
+          taskTitle={task.title}
+          loading={loading}
+          onSubmit={handleSubmit}
+          onClose={() => setShowSubmitModal(false)}
+        />
+      )}
       {showFeedbackModal && (
         <FeedbackModal
           taskTitle={task.title}
@@ -319,13 +320,14 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
           onClose={() => setShowFeedbackModal(false)}
         />
       )}
-      <DeleteTaskConfirm
-        taskTitle={task.title}
-        isOpen={showDeleteConfirm}
-        loading={loading}
-        onConfirm={handleDelete}
-        onClose={() => setShowDeleteConfirm(false)}
-      />
+      {showDeleteConfirm && (
+        <DeleteTaskConfirm
+          taskTitle={task.title}
+          loading={loading}
+          onConfirm={handleDelete}
+          onClose={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </>
   );
 }

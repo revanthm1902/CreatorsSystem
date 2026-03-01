@@ -199,7 +199,7 @@ export function DirectorDashboard() {
         </div>
       </div>
 
-      <CreateTaskModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
+      {showCreateModal && <CreateTaskModal onClose={() => setShowCreateModal(false)} />}
 
       {/* Reset Password Modal */}
       {resetModal && (

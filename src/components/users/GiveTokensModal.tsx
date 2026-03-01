@@ -38,13 +38,18 @@ export function GiveTokensModal({ target, actorId, actorName, giveTokens, onClos
     setLoading(true);
     setError('');
 
-    const result = await giveTokens(target.id, tokens, reason.trim(), actorId, actorName, target.full_name);
-    setLoading(false);
+    try {
+      const result = await giveTokens(target.id, tokens, reason.trim(), actorId, actorName, target.full_name);
 
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setSuccess(true);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSuccess(true);
+      }
+    } catch {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 

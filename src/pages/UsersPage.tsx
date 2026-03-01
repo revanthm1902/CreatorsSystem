@@ -289,14 +289,15 @@ export function UsersPage() {
         </div>
       </div>
 
-      <CreateUserModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        canCreateAdmin={canManageAdmins}
-        actorId={profile?.id || ''}
-        actorName={profile?.full_name || ''}
-        createUser={createUser}
-      />
+      {showCreateModal && (
+        <CreateUserModal
+          onClose={() => setShowCreateModal(false)}
+          canCreateAdmin={canManageAdmins}
+          actorId={profile?.id || ''}
+          actorName={profile?.full_name || ''}
+          createUser={createUser}
+        />
+      )}
 
       {giveTokensTarget && (
         <GiveTokensModal

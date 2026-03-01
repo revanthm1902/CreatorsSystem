@@ -78,7 +78,7 @@ export function AdminDashboard() {
         )}
       </div>
 
-      <CreateTaskModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
+      {showCreateModal && <CreateTaskModal onClose={() => setShowCreateModal(false)} />}
     </div>
   );
 }

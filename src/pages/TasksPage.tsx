@@ -123,8 +123,8 @@ export function TasksPage() {
         )}
       </div>
 
-      {isAdmin && (
-        <CreateTaskModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
+      {isAdmin && showCreateModal && (
+        <CreateTaskModal onClose={() => setShowCreateModal(false)} />
       )}
     </div>
   );

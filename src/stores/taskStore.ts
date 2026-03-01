@@ -26,6 +26,8 @@ interface TaskState {
   loading: boolean;
   initialized: boolean;
   lastFetch: number;
+  _lastUserId: string | undefined;
+  _lastRole: string | undefined;
   fetchTasks: (userId?: string, role?: string, force?: boolean) => Promise<void>;
   createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback'>, creatorRole: string) => Promise<{ error: string | null }>;
   editTask: (taskId: string, updates: { title: string; description: string; deadline: string; tokens: number; assigned_to: string }, actorId: string, actorRole: string) => Promise<{ error: string | null }>;
@@ -47,6 +49,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   loading: false,
   initialized: false,
   lastFetch: 0,
+  _lastUserId: undefined,
+  _lastRole: undefined,
 
   // -----------------------------------------------------------------------
   // Fetch
@@ -58,7 +62,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     if (state.loading) return;
     if (!force && state.initialized && (now - state.lastFetch) < CACHE_DURATION) return;
 
-    set({ loading: true });
+    set({ loading: true, _lastUserId: userId, _lastRole: role });
 
     try {
       const { data } = await taskService.fetchTasks(userId, role);
@@ -463,7 +467,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   // -----------------------------------------------------------------------
   subscribeToTasks: () => {
     return taskService.subscribeToTaskChanges(() => {
-      get().fetchTasks(undefined, undefined, true);
+      const { _lastUserId, _lastRole } = get();
+      get().fetchTasks(_lastUserId, _lastRole, true);
     });
   },
 
@@ -471,6 +476,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   // Reset
   // -----------------------------------------------------------------------
   reset: () => {
-    set({ tasks: [], loading: false, initialized: false, lastFetch: 0 });
+    set({ tasks: [], loading: false, initialized: false, lastFetch: 0, _lastUserId: undefined, _lastRole: undefined });
   },
 }));
