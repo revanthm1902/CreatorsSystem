@@ -202,54 +202,75 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
   const handleMarkDone = async () => {
     if (!profile) return;
     setLoading(true);
-    await updateTaskStatus(task.id, 'Under Review', profile.id, new Date().toISOString(), submissionNote || undefined);
-    setLoading(false);
-    setShowSubmitModal(false);
-    setSubmissionNote('');
+    try {
+      await updateTaskStatus(task.id, 'Under Review', profile.id, new Date().toISOString(), submissionNote || undefined);
+      setShowSubmitModal(false);
+      setSubmissionNote('');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleApprove = async () => {
     if (!profile) return;
     setLoading(true);
-    await approveTask(task.id, task.assigned_to, task.tokens, task.deadline, profile.id);
-    setLoading(false);
+    try {
+      await approveTask(task.id, task.assigned_to, task.tokens, task.deadline, profile.id);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReject = async () => {
     if (!profile) return;
     setLoading(true);
-    await rejectTask(task.id, profile.id);
-    setLoading(false);
+    try {
+      await rejectTask(task.id, profile.id);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReassign = async () => {
     if (!profile) return;
     setLoading(true);
-    await reassignTask(task.id, profile.id);
-    setLoading(false);
+    try {
+      await reassignTask(task.id, profile.id);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDirectorApprove = async () => {
     if (!profile) return;
     setLoading(true);
-    await approveTaskByDirector(task.id, profile.id);
-    setLoading(false);
+    try {
+      await approveTaskByDirector(task.id, profile.id);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveFeedback = async () => {
     if (!profile) return;
     setLoading(true);
-    await addFeedback(task.id, feedbackText, profile.id);
-    setLoading(false);
-    setShowFeedbackModal(false);
+    try {
+      await addFeedback(task.id, feedbackText, profile.id);
+      setShowFeedbackModal(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async () => {
     if (!profile) return;
     setLoading(true);
-    await deleteTask(task.id, profile.id);
-    setLoading(false);
-    setShowDeleteConfirm(false);
+    try {
+      await deleteTask(task.id, profile.id);
+      setShowDeleteConfirm(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const canMarkDone = profile?.role === 'User' && task.status === 'Pending';

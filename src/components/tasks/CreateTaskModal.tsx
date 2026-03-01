@@ -43,27 +43,32 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
     }
 
     setLoading(true);
-    const result = await createTask({
-      title,
-      description,
-      assigned_to: assignedTo,
-      created_by: profile.id,
-      deadline: new Date(deadline).toISOString(),
-      tokens,
-      status: 'Pending',
-      director_approved: false, // Will be set by store based on role
-    }, profile.role);
-    setLoading(false);
+    try {
+      const result = await createTask({
+        title,
+        description,
+        assigned_to: assignedTo,
+        created_by: profile.id,
+        deadline: new Date(deadline).toISOString(),
+        tokens,
+        status: 'Pending',
+        director_approved: false, // Will be set by store based on role
+      }, profile.role);
 
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setTitle('');
-      setDescription('');
-      setAssignedTo('');
-      setDeadline('');
-      setTokens(10);
-      onClose();
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setTitle('');
+        setDescription('');
+        setAssignedTo('');
+        setDeadline('');
+        setTokens(10);
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -67,24 +67,29 @@ export function EditTaskModal({ isOpen, onClose, task }: EditTaskModalProps) {
     }
 
     setLoading(true);
-    const result = await editTask(
-      task.id,
-      {
-        title,
-        description,
-        deadline,
-        tokens,
-        assigned_to: assignedTo,
-      },
-      profile.id,
-      profile.role
-    );
-    setLoading(false);
+    try {
+      const result = await editTask(
+        task.id,
+        {
+          title,
+          description,
+          deadline,
+          tokens,
+          assigned_to: assignedTo,
+        },
+        profile.id,
+        profile.role
+      );
 
-    if (result.error) {
-      setError(result.error);
-    } else {
-      onClose();
+      if (result.error) {
+        setError(result.error);
+      } else {
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
