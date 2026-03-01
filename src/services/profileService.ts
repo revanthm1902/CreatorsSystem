@@ -58,7 +58,7 @@ export async function fetchLeaderboard(limit = 50): Promise<{ data: Profile[] | 
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .in('role', ['User', 'Admin'])
+    .eq('role', 'User')
     .gt('total_tokens', 0)
     .order('total_tokens', { ascending: false })
     .order('employee_id', { ascending: true })

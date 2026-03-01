@@ -8,14 +8,12 @@ import { Trash2 } from 'lucide-react';
 
 interface DeleteTaskConfirmProps {
   taskTitle: string;
-  isOpen: boolean;
   loading: boolean;
   onConfirm: () => Promise<void>;
   onClose: () => void;
 }
 
-export function DeleteTaskConfirm({ taskTitle, isOpen, loading, onConfirm, onClose }: DeleteTaskConfirmProps) {
-  if (!isOpen) return null;
+export function DeleteTaskConfirm({ taskTitle, loading, onConfirm, onClose }: DeleteTaskConfirmProps) {
 
   return (
     <div

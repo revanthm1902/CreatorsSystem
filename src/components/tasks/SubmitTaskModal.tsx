@@ -9,16 +9,13 @@ import { Send, X } from 'lucide-react';
 
 interface SubmitTaskModalProps {
   taskTitle: string;
-  isOpen: boolean;
   loading: boolean;
   onSubmit: (note: string | undefined) => Promise<void>;
   onClose: () => void;
 }
 
-export function SubmitTaskModal({ taskTitle, isOpen, loading, onSubmit, onClose }: SubmitTaskModalProps) {
+export function SubmitTaskModal({ taskTitle, loading, onSubmit, onClose }: SubmitTaskModalProps) {
   const [submissionNote, setSubmissionNote] = useState('');
-
-  if (!isOpen) return null;
 
   const handleSubmit = async () => {
     await onSubmit(submissionNote || undefined);
