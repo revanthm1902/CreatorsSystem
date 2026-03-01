@@ -3,6 +3,7 @@ import { X, Save, Calendar, Zap } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
 import { useUserStore } from '../../stores/userStore';
 import { useAuthStore } from '../../stores/authStore';
+import { getMinDateTimeLocal } from '../../lib/dateUtils';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -75,15 +76,7 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
   if (!isOpen) return null;
 
   // Compute minimum datetime (current time formatted for datetime-local input)
-  const minDateTime = (() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  })();
+  const minDateTime = getMinDateTimeLocal();
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
