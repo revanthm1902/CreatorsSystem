@@ -12,25 +12,35 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const { signIn, loading } = useAuthStore();
+  const [submitting, setSubmitting] = useState(false);
+  const { signIn } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError('');
+    setSubmitting(true);
 
-    const result = await signIn(email, password);
-    
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
+    try {
+      const result = await signIn(email, password);
 
-    // Navigate based on password reset requirement
-    if (result.requiresPasswordReset) {
-      navigate('/reset-password', { replace: true });
-    } else {
-      navigate('/dashboard', { replace: true });
+      if (result.error) {
+        setError(result.error);
+        setSubmitting(false);
+        return;
+      }
+
+      // Navigate based on password reset requirement
+      if (result.requiresPasswordReset) {
+        navigate('/reset-password', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -137,10 +147,10 @@ export function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
             >
-              {loading ? (
+              {submitting ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>

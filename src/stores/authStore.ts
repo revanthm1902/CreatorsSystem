@@ -45,6 +45,7 @@ interface AuthState {
 }
 
 let _authSubscription: { unsubscribe: () => void } | null = null;
+let _signingIn = false;   // guards against onAuthStateChange / signIn race
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -76,6 +77,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     _authSubscription = authService.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
+        // Skip if signIn() is already handling this
+        if (_signingIn) return;
         set({ user: session.user });
         try {
           await get().fetchProfile();
@@ -90,6 +93,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signIn: async (email: string, password: string) => {
     logger.info(CAT, 'signIn', { email });
+    _signingIn = true;
     set({ loading: true });
 
     try {
@@ -139,6 +143,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const msg = e instanceof Error ? e.message : 'An unexpected error occurred';
       logger.error(CAT, 'signIn threw', { error: msg });
       return { error: friendlyError(msg), requiresPasswordReset: false };
+    } finally {
+      _signingIn = false;
     }
   },
 

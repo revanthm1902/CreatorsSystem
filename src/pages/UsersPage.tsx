@@ -59,7 +59,7 @@ export function UsersPage() {
   }), [users]);
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(true);
   }, [fetchUsers]);
 
   const getRoleIcon = (role: UserRole) => {

@@ -1,10 +1,10 @@
 export type UserRole = 'Director' | 'Admin' | 'User';
 export type TaskStatus = 'Pending' | 'Under Review' | 'Completed' | 'Rejected';
 
-export type Department = 'Founder' | 'Admin' | 'Non-Technical' | 'Web Dev' | 'App Dev' | 'AI Engineer' | 'Management Executive';
+export type Department = 'Admin' | 'Non-Technical' | 'Web Dev' | 'App Dev' | 'AI Engineer' | 'Management Executive';
 
 export const USER_DEPARTMENTS: Department[] = ['Non-Technical', 'Web Dev', 'App Dev', 'AI Engineer', 'Management Executive'];
-export const ALL_DEPARTMENTS: Department[] = ['Founder', 'Admin', ...USER_DEPARTMENTS];
+export const ALL_DEPARTMENTS: Department[] = ['Admin', ...USER_DEPARTMENTS];
 
 export interface Profile {
   id: string;

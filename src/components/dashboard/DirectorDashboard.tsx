@@ -28,9 +28,9 @@ export function DirectorDashboard() {
   const [resetModal, setResetModal] = useState<{ requestId: string; email: string } | null>(null);
 
   useEffect(() => {
-    fetchTasks(undefined, profile?.role);
-    fetchUsers();
-    fetchLeaderboard();
+    fetchTasks(undefined, profile?.role, true);
+    fetchUsers(true);
+    fetchLeaderboard(true);
     fetchPasswordResetRequests();
     const unsubscribe = subscribeToTasks();
     return () => unsubscribe();

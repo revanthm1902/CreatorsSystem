@@ -54,8 +54,8 @@ export function TasksPage() {
   /* Data fetching                                                       */
   /* ------------------------------------------------------------------ */
   useEffect(() => {
-    fetchTasks(profile?.role === 'User' ? profile?.id : undefined, profile?.role);
-    fetchUsers();
+    fetchTasks(profile?.role === 'User' ? profile?.id : undefined, profile?.role, true);
+    fetchUsers(true);
     const unsubscribe = subscribeToTasks();
     return () => unsubscribe();
   }, [fetchTasks, fetchUsers, subscribeToTasks, profile?.id, profile?.role]);
