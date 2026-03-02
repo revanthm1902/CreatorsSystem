@@ -26,19 +26,38 @@ export interface TokenCalculation {
   reason: string;
 }
 
-/** Calculate how many tokens to award based on deadline vs. now. */
-export function calculateTokens(tokens: number, deadline: string): TokenCalculation {
+/**
+ * Calculate how many tokens to award based on deadline vs. now.
+ *
+ * Rules:
+ *  - On time  → full planned tokens + optional admin bonus
+ *  - Late     → 0 planned tokens (forfeited) + optional admin discretion award
+ *
+ * @param tokens       - The planned token value set when the task was created.
+ * @param deadline     - The task deadline ISO string.
+ * @param adminAward   - Tokens the admin explicitly chose to give at approval time.
+ *                       On-time: treated as a bonus on top of base.
+ *                       Late:    the only tokens the user receives (0 by default).
+ */
+export function calculateTokens(tokens: number, deadline: string, adminAward?: number): TokenCalculation {
   const now = new Date();
   const deadlineDate = new Date(deadline);
   const isOnTime = now <= deadlineDate;
 
-  const bonusTokens = isOnTime ? Math.ceil(tokens * 0.2) : 0;
-  const baseTokens = isOnTime ? tokens : Math.ceil(tokens * 0.5);
+  // On-time → full planned tokens; Late → forfeited (0)
+  const baseTokens = isOnTime ? tokens : 0;
+
+  // Admin discretionary award (bonus on-time, or mercy tokens when late)
+  const bonusTokens = adminAward !== undefined ? Math.max(0, adminAward) : 0;
   const totalTokens = baseTokens + bonusTokens;
 
   const reason = isOnTime
-    ? `Task completed on time (+${bonusTokens} bonus)`
-    : 'Task completed late (half tokens, no bonus)';
+    ? bonusTokens > 0
+      ? `Task completed on time (+${bonusTokens} bonus by admin)`
+      : 'Task completed on time'
+    : bonusTokens > 0
+      ? `Task completed late — planned tokens forfeited, admin awarded ${bonusTokens} token${bonusTokens !== 1 ? 's' : ''}`
+      : 'Task completed late — planned tokens forfeited';
 
   return { isOnTime, baseTokens, bonusTokens, totalTokens, reason };
 }
@@ -96,3 +115,31 @@ export async function incrementTokens(
 
   return { error: null };
 }
+
+/**
+ * Accumulate a 10% admin credit for approving a task.
+ *
+ * Fractions are kept in `token_credit_balance`; whole tokens are flushed
+ * to `total_tokens` automatically by the DB function so the count stays
+ * a clean integer.
+ */
+export async function accumulateAdminCredit(
+  adminId: string,
+  taskTotalTokens: number,
+): Promise<{ error: string | null }> {
+  const credit = taskTotalTokens * 0.1;
+  logger.info(CAT, 'accumulateAdminCredit', { adminId, credit });
+
+  const { error } = await supabase.rpc('accumulate_admin_credit', {
+    p_admin_id: adminId,
+    p_credit: credit,
+  });
+
+  if (error) {
+    logger.error(CAT, 'accumulateAdminCredit failed', { error: error.message });
+    return { error: error.message };
+  }
+
+  return { error: null };
+}
+
