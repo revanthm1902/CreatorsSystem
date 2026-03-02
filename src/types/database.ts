@@ -1,6 +1,11 @@
 export type UserRole = 'Director' | 'Admin' | 'User';
 export type TaskStatus = 'Pending' | 'Under Review' | 'Completed' | 'Rejected';
 
+export type Department = 'Founder' | 'Admin' | 'Non-Technical' | 'Web Dev' | 'App Dev' | 'AI Engineer' | 'Management Executive';
+
+export const USER_DEPARTMENTS: Department[] = ['Non-Technical', 'Web Dev', 'App Dev', 'AI Engineer', 'Management Executive'];
+export const ALL_DEPARTMENTS: Department[] = ['Founder', 'Admin', ...USER_DEPARTMENTS];
+
 export interface Profile {
   id: string;
   employee_id: string;
@@ -15,6 +20,7 @@ export interface Profile {
   linkedin_url: string | null;
   github_url: string | null;
   resume_url: string | null;
+  department: Department | null;
   created_at: string;
   updated_at: string;
 }
@@ -116,6 +122,17 @@ export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submit
 export type TaskUpdate = Partial<Omit<Task, 'id' | 'created_at'>>;
 export type PointsLogInsert = Omit<PointsLog, 'id' | 'created_at'>;
 export type ActivityLogInsert = Omit<ActivityLog, 'id' | 'created_at' | 'actor' | 'target_user' | 'task'>;
+
+export interface DepartmentAccess {
+  id: string;
+  department: string | null;
+  user_id: string | null;
+  can_view_department: string;
+  granted_by: string | null;
+  created_at: string;
+  // Joined data (optional)
+  user?: Profile;
+}
 
 export interface Database {
   public: {

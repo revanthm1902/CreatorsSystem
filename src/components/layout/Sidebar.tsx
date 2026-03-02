@@ -49,7 +49,7 @@ interface NavItem {
 const navItemsByRole: Record<UserRole, NavItem[]> = {
   Director: [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/tasks', icon: ClipboardList, label: 'All Tasks' },
+    { to: '/tasks', icon: ClipboardList, label: 'Tasks' },
     { to: '/users', icon: Users, label: 'Manage Users' },
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { to: '/settings', icon: Settings, label: 'Settings' },
@@ -62,7 +62,8 @@ const navItemsByRole: Record<UserRole, NavItem[]> = {
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   User: [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'My Tasks' },
+    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/tasks', icon: ClipboardList, label: 'Tasks' },
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],

@@ -12,7 +12,7 @@
 
 import { create } from 'zustand';
 import type { User } from '@supabase/supabase-js';
-import type { Profile } from '../types/database';
+import type { Profile, Department } from '../types/database';
 import * as authService from '../services/authService';
 import * as profileService from '../services/profileService';
 import { friendlyError, isTransientError } from '../lib/errorHandling';
@@ -28,6 +28,7 @@ interface ProfileUpdateData {
   linkedin_url?: string | null;
   github_url?: string | null;
   resume_url?: string | null;
+  department?: Department | null;
 }
 
 interface AuthState {

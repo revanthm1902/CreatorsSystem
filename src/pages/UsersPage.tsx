@@ -12,17 +12,39 @@ import {
   Crown,
   Zap,
   Gift,
+  Building2,
+  ChevronDown,
+  Pencil,
 } from 'lucide-react';
 import type { UserRole, Profile } from '../types/database';
+import { USER_DEPARTMENTS } from '../types/database';
 
 type RoleFilter = 'All' | 'Director' | 'Admin' | 'User';
 
 export function UsersPage() {
-  const { users, loading, initialized, fetchUsers, createUser, deleteUser, giveTokens } = useUserStore();
+  const { users, loading, initialized, fetchUsers, createUser, deleteUser, giveTokens, updateUserDepartment } = useUserStore();
   const { profile } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [giveTokensTarget, setGiveTokensTarget] = useState<Profile | null>(null);
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('All');
+  const [editingDeptUserId, setEditingDeptUserId] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; openUp: boolean }>({ top: 0, left: 0, openUp: false });
+
+  const openDeptDropdown = (userId: string, btnEl: HTMLButtonElement) => {
+    if (editingDeptUserId === userId) {
+      setEditingDeptUserId(null);
+      return;
+    }
+    const rect = btnEl.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < 220;
+    setDropdownPos({
+      top: openUp ? rect.top : rect.bottom + 4,
+      left: rect.left,
+      openUp,
+    });
+    setEditingDeptUserId(userId);
+  };
 
   const filteredUsers = useMemo(() => {
     if (roleFilter === 'All') return users;
@@ -68,6 +90,14 @@ export function UsersPage() {
       if (result.error) {
         alert(`Failed to delete user: ${result.error}`);
       }
+    }
+  };
+
+  const handleDeptChange = async (userId: string, department: string) => {
+    setEditingDeptUserId(null);
+    const result = await updateUserDepartment(userId, department);
+    if (result.error) {
+      alert(`Failed to update department: ${result.error}`);
     }
   };
 
@@ -143,17 +173,18 @@ export function UsersPage() {
 
       {/* Users Table (desktop) / Cards (mobile) */}
       <div 
-        className="rounded-xl overflow-hidden"
+        className="rounded-xl"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
       >
         {/* Desktop table header */}
         <div 
-          className={`hidden md:grid ${roleFilter === 'User' || roleFilter === 'All' ? 'grid-cols-[2.5fr_1.5fr_1fr_0.8fr_0.8fr]' : 'grid-cols-[2.5fr_1.5fr_1fr_0.8fr]'} gap-4 px-5 py-3 text-xs font-semibold uppercase tracking-wider`}
+          className={`hidden md:grid ${roleFilter === 'User' || roleFilter === 'All' ? 'grid-cols-[2fr_1.2fr_0.8fr_1fr_0.6fr_0.8fr]' : 'grid-cols-[2fr_1.2fr_0.8fr_1fr_0.8fr]'} gap-4 px-5 py-3 text-xs font-semibold uppercase tracking-wider rounded-t-xl`}
           style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
         >
           <span>User</span>
           <span>Employee ID</span>
           <span>Role</span>
+          <span>Department</span>
           {(roleFilter === 'User' || roleFilter === 'All') && <span>Tokens</span>}
           <span className="text-right">Actions</span>
         </div>
@@ -175,7 +206,7 @@ export function UsersPage() {
               style={{ borderColor: 'var(--border-color)' }}
             >
               {/* Desktop row */}
-              <div className={`hidden md:grid ${roleFilter === 'User' || roleFilter === 'All' ? 'grid-cols-[2.5fr_1.5fr_1fr_0.8fr_0.8fr]' : 'grid-cols-[2.5fr_1.5fr_1fr_0.8fr]'} gap-4 items-center px-5 py-3.5`}>
+              <div className={`hidden md:grid ${roleFilter === 'User' || roleFilter === 'All' ? 'grid-cols-[2fr_1.2fr_0.8fr_1fr_0.6fr_0.8fr]' : 'grid-cols-[2fr_1.2fr_0.8fr_1fr_0.8fr]'} gap-4 items-center px-5 py-3.5`}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 bg-primary/15 rounded-full flex items-center justify-center shrink-0">
                     {getRoleIcon(user.role)}
@@ -195,6 +226,45 @@ export function UsersPage() {
                     {getRoleIcon(user.role)}
                     {user.role}
                   </span>
+                </div>
+                <div className="relative">
+                  {user.role === 'User' ? (
+                    <>
+                      <button
+                        onClick={(e) => openDeptDropdown(user.id, e.currentTarget)}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                          user.department
+                            ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                            : 'hover:border-primary/50'
+                        }`}
+                        style={!user.department
+                          ? { backgroundColor: 'var(--bg-elevated)', borderColor: 'var(--border-color)', color: 'var(--text-muted)' }
+                          : undefined
+                        }
+                        title="Click to change department"
+                      >
+                        {user.department ? (
+                          <>
+                            <Building2 className="w-3 h-3" />
+                            {user.department}
+                            <Pencil className="w-2.5 h-2.5 opacity-50" />
+                          </>
+                        ) : (
+                          <>
+                            Set dept
+                            <ChevronDown className="w-3 h-3" />
+                          </>
+                        )}
+                      </button>
+                    </>
+                  ) : user.department ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                      <Building2 className="w-3 h-3" />
+                      {user.department}
+                    </span>
+                  ) : (
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>—</span>
+                  )}
                 </div>
                 {(roleFilter === 'User' || roleFilter === 'All') && (
                   <div className="flex items-center gap-1 text-accent">
@@ -236,51 +306,91 @@ export function UsersPage() {
               </div>
 
               {/* Mobile card */}
-              <div className="md:hidden flex items-center gap-3 px-4 py-3">
-                <div className="w-10 h-10 bg-primary/15 rounded-full flex items-center justify-center shrink-0">
-                  {getRoleIcon(user.role)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium truncate text-sm" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0 ${getRoleBadgeClass(user.role)}`}>
-                      {user.role}
-                    </span>
+              <div className="md:hidden px-4 py-3 space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/15 rounded-full flex items-center justify-center shrink-0">
+                    {getRoleIcon(user.role)}
                   </div>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{user.employee_id}</span>
-                    {(user.role === 'User' || user.role === 'Admin') && (
-                      <div className="flex items-center gap-1 text-accent text-xs">
-                        <Zap className="w-3 h-3" />
-                        <span className="font-medium">{user.total_tokens}</span>
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium truncate text-sm" style={{ color: 'var(--text-primary)' }}>{user.full_name}</p>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0 ${getRoleBadgeClass(user.role)}`}>
+                        {user.role}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{user.employee_id}</span>
+                      {(user.role === 'User' || user.role === 'Admin') && (
+                        <div className="flex items-center gap-1 text-accent text-xs">
+                          <Zap className="w-3 h-3" />
+                          <span className="font-medium">{user.total_tokens}</span>
+                        </div>
+                      )}
+                    </div>
+                    {user.is_temporary_password && (
+                      <span className="text-[11px] text-warning mt-0.5 block">Pending password reset</span>
                     )}
                   </div>
-                  {user.is_temporary_password && (
-                    <span className="text-[11px] text-warning mt-0.5 block">Pending password reset</span>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {canGiveTokens(user) && (
+                      <button
+                        onClick={() => setGiveTokensTarget(user)}
+                        className="p-2 hover:text-accent hover:bg-accent/10 rounded-lg transition-all"
+                        style={{ color: 'var(--text-secondary)' }}
+                        title="Give tokens"
+                      >
+                        <Gift className="w-4 h-4" />
+                      </button>
+                    )}
+                    {(user.role === 'User' || (canManageAdmins && user.role === 'Admin')) && user.id !== profile?.id && (
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="p-2 hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
+                        style={{ color: 'var(--text-secondary)' }}
+                        title="Delete user"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {canGiveTokens(user) && (
-                    <button
-                      onClick={() => setGiveTokensTarget(user)}
-                      className="p-2 hover:text-accent hover:bg-accent/10 rounded-lg transition-all"
-                      style={{ color: 'var(--text-secondary)' }}
-                      title="Give tokens"
-                    >
-                      <Gift className="w-4 h-4" />
-                    </button>
-                  )}
-                  {(user.role === 'User' || (canManageAdmins && user.role === 'Admin')) && user.id !== profile?.id && (
-                    <button
-                      onClick={() => handleDeleteUser(user.id)}
-                      className="p-2 hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
-                      style={{ color: 'var(--text-secondary)' }}
-                      title="Delete user"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+
+                {/* Mobile department row */}
+                <div className="flex items-center gap-2 pl-13 relative">
+                  {user.role === 'User' ? (
+                    <>
+                      <button
+                        onClick={(e) => openDeptDropdown(user.id, e.currentTarget)}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer ${
+                          user.department
+                            ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                            : 'hover:border-primary/50'
+                        }`}
+                        style={!user.department
+                          ? { backgroundColor: 'var(--bg-elevated)', borderColor: 'var(--border-color)', color: 'var(--text-muted)' }
+                          : undefined
+                        }
+                      >
+                        {user.department ? (
+                          <>
+                            <Building2 className="w-3 h-3" />
+                            {user.department}
+                            <Pencil className="w-2.5 h-2.5 opacity-50" />
+                          </>
+                        ) : (
+                          <>
+                            Set dept
+                            <ChevronDown className="w-3 h-3" />
+                          </>
+                        )}
+                      </button>
+                    </>
+                  ) : user.department ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
+                      <Building2 className="w-3 h-3" />
+                      {user.department}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -307,6 +417,40 @@ export function UsersPage() {
           giveTokens={giveTokens}
           onClose={() => setGiveTokensTarget(null)}
         />
+      )}
+
+      {/* Fixed-position department dropdown portal */}
+      {editingDeptUserId && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setEditingDeptUserId(null)} />
+          <div
+            className="fixed w-48 rounded-xl border shadow-xl z-50 py-1"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              borderColor: 'var(--border-color)',
+              left: dropdownPos.left,
+              ...(dropdownPos.openUp
+                ? { bottom: window.innerHeight - dropdownPos.top + 4 }
+                : { top: dropdownPos.top }),
+            }}
+          >
+            {USER_DEPARTMENTS.map((dept) => {
+              const targetUser = users.find((u) => u.id === editingDeptUserId);
+              return (
+                <button
+                  key={dept}
+                  onClick={() => handleDeptChange(editingDeptUserId, dept)}
+                  className={`w-full text-left px-3 py-2.5 text-xs transition-colors hover:bg-primary/10 ${
+                    targetUser?.department === dept ? 'text-primary font-semibold bg-primary/5' : ''
+                  }`}
+                  style={targetUser?.department !== dept ? { color: 'var(--text-primary)' } : undefined}
+                >
+                  {dept}
+                </button>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

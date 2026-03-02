@@ -593,3 +593,43 @@ $$;
 
 -- Force PostgREST to reload its schema cache after function changes
 NOTIFY pgrst, 'reload schema';
+
+-- ========================================================================
+-- 23. Department system
+-- ========================================================================
+
+-- Add department column to profiles
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS department TEXT CHECK (
+  department IN ('Founder', 'Admin', 'Non-Technical', 'Web Dev', 'App Dev', 'AI Engineer', 'Management Executive')
+);
+
+-- Department access rules table (dept-to-dept AND user-to-dept)
+CREATE TABLE IF NOT EXISTS public.department_access (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  department TEXT,                     -- source department (NULL for user-level rules)
+  user_id UUID REFERENCES public.profiles(id), -- source user (NULL for dept-level rules)
+  can_view_department TEXT NOT NULL,   -- target department
+  granted_by UUID REFERENCES public.profiles(id) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT dept_or_user CHECK (department IS NOT NULL OR user_id IS NOT NULL)
+);
+
+-- Migration for existing department_access table: add user_id column
+ALTER TABLE public.department_access ALTER COLUMN department DROP NOT NULL;
+ALTER TABLE public.department_access ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id);
+
+-- RLS for department_access
+ALTER TABLE public.department_access ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "Anyone can read department_access"
+  ON public.department_access FOR SELECT USING (true);
+
+CREATE POLICY IF NOT EXISTS "Directors and admins can insert department_access"
+  ON public.department_access FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('Director', 'Admin'))
+  );
+
+CREATE POLICY IF NOT EXISTS "Directors and admins can delete department_access"
+  ON public.department_access FOR DELETE USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('Director', 'Admin'))
+  );

@@ -95,13 +95,15 @@ export async function setupUserProfile(
   userId: string,
   fullName: string,
   role: string,
+  department?: string | null,
 ): Promise<{ data: CreateUserResult | null; error: string | null }> {
-  logger.info(CAT, 'setupUserProfile', { userId, role });
+  logger.info(CAT, 'setupUserProfile', { userId, role, department });
 
   const { data, error } = await supabase.rpc('admin_setup_user', {
     p_user_id: userId,
     p_full_name: fullName,
     p_role: role,
+    p_department: department ?? null,
   });
 
   if (error) {

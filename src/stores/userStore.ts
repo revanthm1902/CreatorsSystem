@@ -30,9 +30,10 @@ interface UserState {
   lastFetch: number;
   fetchUsers: (force?: boolean) => Promise<void>;
   fetchLeaderboard: (force?: boolean) => Promise<void>;
-  createUser: (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string) => Promise<{ error: string | null; employeeId?: string }>;
+  createUser: (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string, department?: string | null) => Promise<{ error: string | null; employeeId?: string }>;
   giveTokens: (targetUserId: string, amount: number, reason: string, actorId: string, actorName: string, targetName: string) => Promise<{ error: string | null }>;
   deleteUser: (userId: string) => Promise<{ error: string | null }>;
+  updateUserDepartment: (userId: string, department: string) => Promise<{ error: string | null }>;
   fetchPasswordResetRequests: () => Promise<void>;
   resetUserPassword: (userId: string, newPassword: string, requestId: string, actorId: string, actorName: string, userEmail: string) => Promise<{ error: string | null }>;
   dismissPasswordResetRequest: (requestId: string) => Promise<{ error: string | null }>;
@@ -97,8 +98,8 @@ export const useUserStore = create<UserState>((set, get) => ({
   // -----------------------------------------------------------------------
   // Create user
   // -----------------------------------------------------------------------
-  createUser: async (email, password, fullName, role, actorId, actorName) => {
-    logger.info(CAT, 'createUser', { email, role });
+  createUser: async (email, password, fullName, role, actorId, actorName, department?) => {
+    logger.info(CAT, 'createUser', { email, role, department });
 
     try {
       let userId: string | null = null;
@@ -127,7 +128,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
 
       // Step B: Confirm email + create profile
-      const setup = await userServiceMod.setupUserProfile(userId!, fullName, role);
+      const setup = await userServiceMod.setupUserProfile(userId!, fullName, role, department);
       if (setup.error || !setup.data) {
         return { error: setup.error ?? 'User created but profile setup returned an unexpected response.' };
       }
@@ -190,6 +191,24 @@ export const useUserStore = create<UserState>((set, get) => ({
     if (error) return { error };
 
     set((s) => ({ users: s.users.filter((u) => u.id !== userId) }));
+    return { error: null };
+  },
+
+  // -----------------------------------------------------------------------
+  // Update user department
+  // -----------------------------------------------------------------------
+  updateUserDepartment: async (userId, department) => {
+    logger.info(CAT, 'updateUserDepartment', { userId, department });
+
+    const { error } = await profileService.updateProfile(userId, { department: department as any });
+    if (error) return { error };
+
+    set((s) => ({
+      users: s.users.map((u) =>
+        u.id === userId ? { ...u, department: department as any } : u,
+      ),
+    }));
+
     return { error: null };
   },
 
