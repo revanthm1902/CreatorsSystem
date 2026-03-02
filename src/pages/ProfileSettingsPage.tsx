@@ -13,10 +13,12 @@ import {
   Eye, 
   EyeOff,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from 'lucide-react';
 
-import type { Profile } from '../types/database';
+import type { Profile, Department } from '../types/database';
+import { USER_DEPARTMENTS } from '../types/database';
 
 interface FormData {
   full_name: string;
@@ -45,6 +47,7 @@ export function ProfileSettingsPage() {
   const initializedRef = useRef(false);
   
   const [formData, setFormData] = useState<FormData>(() => getInitialFormData(profile, user?.email ?? undefined));
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(profile?.department ?? null);
 
   const [passwords, setPasswords] = useState({
     newPassword: '',
@@ -68,6 +71,7 @@ export function ProfileSettingsPage() {
       const newData = getInitialFormData(profile, user?.email ?? undefined);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData(newData);
+      setSelectedDepartment(profile.department ?? null);
     }
   }, [profile]);
 
@@ -76,7 +80,7 @@ export function ProfileSettingsPage() {
     setProfileLoading(true);
     setProfileMessage(null);
 
-    const result = await updateProfile({
+    const updateData: Record<string, unknown> = {
       full_name: formData.full_name,
       date_of_birth: formData.date_of_birth || null,
       email: user?.email || formData.email || null,
@@ -84,7 +88,14 @@ export function ProfileSettingsPage() {
       linkedin_url: formData.linkedin_url || null,
       github_url: formData.github_url || null,
       resume_url: formData.resume_url || null,
-    });
+    };
+
+    // Users can set their own department
+    if (profile?.role === 'User' && selectedDepartment) {
+      updateData.department = selectedDepartment;
+    }
+
+    const result = await updateProfile(updateData as any);
 
     setProfileLoading(false);
 
@@ -151,11 +162,48 @@ export function ProfileSettingsPage() {
               {profile?.full_name}
             </h2>
             <p className="text-xs sm:text-base" style={{ color: 'var(--text-muted)' }}>
-              {profile?.employee_id} • {profile?.role}
+              {profile?.employee_id} • {profile?.role}{profile?.department ? ` • ${profile.department}` : ''}
             </p>
           </div>
         </div>
       </div>
+
+      {/* Department Selection — Users only */}
+      {profile?.role === 'User' && (
+        <div 
+          className="card rounded-2xl p-4 sm:p-6 mb-5 sm:mb-6 stagger-item"
+          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}
+        >
+          <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <Building2 className="w-5 h-5 text-primary" />
+            Department
+          </h3>
+          <p className="text-xs sm:text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
+            Select the department you belong to. This will be saved when you update your profile.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {USER_DEPARTMENTS.map((dept) => (
+              <button
+                key={dept}
+                type="button"
+                onClick={() => setSelectedDepartment(dept)}
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all border ${
+                  selectedDepartment === dept
+                    ? 'bg-primary text-white border-primary'
+                    : 'hover:border-primary/50'
+                }`}
+                style={
+                  selectedDepartment !== dept
+                    ? { backgroundColor: 'var(--bg-elevated)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }
+                    : undefined
+                }
+              >
+                {dept}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Personal Information Form */}
       <form onSubmit={handleProfileSubmit}>

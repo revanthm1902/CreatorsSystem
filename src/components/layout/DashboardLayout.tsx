@@ -1,8 +1,14 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { ActivityButton, ActivityToast } from '../dashboard/ActivityNotification';
+import { RefreshCw } from 'lucide-react';
 
 export function DashboardLayout() {
+  const handleHardRefresh = () => {
+    // Hard refresh: bypass cache on all platforms
+    window.location.reload();
+  };
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-main)' }}>
       <Sidebar />
@@ -19,6 +25,23 @@ export function DashboardLayout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Hard Refresh FAB — fixed bottom-right */}
+      <button
+        onClick={handleHardRefresh}
+        className="fixed bottom-5 right-5 z-50 p-3 rounded-full shadow-lg border transition-all hover:scale-110 active:scale-95 group"
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          borderColor: 'var(--border-color)',
+        }}
+        title="Hard Refresh"
+        aria-label="Hard refresh page"
+      >
+        <RefreshCw
+          className="w-5 h-5 transition-transform group-hover:rotate-180"
+          style={{ color: 'var(--text-secondary)' }}
+        />
+      </button>
 
       {/* Toast notification for new activities */}
       <ActivityToast />

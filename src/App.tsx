@@ -75,14 +75,9 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/settings" element={<ProfileSettingsPage />} />
-          <Route
-            path="/tasks"
-            element={
-              <ProtectedRoute allowedRoles={['Director', 'Admin']}>
-                <TasksPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/tasks" element={<TasksPage />} />
+          {/* Redirect old department-tasks route to unified tasks page */}
+          <Route path="/department-tasks" element={<Navigate to="/tasks" replace />} />
           <Route
             path="/users"
             element={

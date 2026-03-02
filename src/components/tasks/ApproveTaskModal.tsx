@@ -166,7 +166,7 @@ export function ApproveTaskModal({
           {/* Admin award input */}
           <div>
             <label
-              className="block text-sm font-medium mb-2 flex items-center gap-1.5"
+              className="text-sm font-medium mb-2 flex items-center gap-1.5"
               style={{ color: 'var(--text-secondary)' }}
             >
               <Gift className="w-4 h-4 text-success" />

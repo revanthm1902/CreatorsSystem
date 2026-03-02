@@ -6,14 +6,17 @@ import {
   X,
   Eye,
   EyeOff,
+  Building2,
 } from 'lucide-react';
+import { USER_DEPARTMENTS } from '../../types/database';
+import type { Department } from '../../types/database';
 
 interface CreateUserModalProps {
   onClose: () => void;
   canCreateAdmin: boolean;
   actorId: string;
   actorName: string;
-  createUser: (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string) => Promise<{ error: string | null; employeeId?: string }>;
+  createUser: (email: string, password: string, fullName: string, role: 'Admin' | 'User', actorId: string, actorName: string, department?: string | null) => Promise<{ error: string | null; employeeId?: string }>;
 }
 
 export function CreateUserModal({ onClose, canCreateAdmin, actorId, actorName, createUser }: CreateUserModalProps) {
@@ -21,6 +24,7 @@ export function CreateUserModal({ onClose, canCreateAdmin, actorId, actorName, c
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'Admin' | 'User'>('User');
+  const [department, setDepartment] = useState<Department | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,8 +36,16 @@ export function CreateUserModal({ onClose, canCreateAdmin, actorId, actorName, c
     setSuccess(null);
     setLoading(true);
 
+    // Validate department for User role
+    if (role === 'User' && !department) {
+      setError('Please select a department for the user');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const result = await createUser(email, password, fullName, role, actorId, actorName);
+      const dept = role === 'Admin' ? 'Admin' : department;
+      const result = await createUser(email, password, fullName, role, actorId, actorName, dept);
 
       if (result.error) {
         setError(result.error);
@@ -43,6 +55,7 @@ export function CreateUserModal({ onClose, canCreateAdmin, actorId, actorName, c
         setFullName('');
         setPassword('');
         setRole('User');
+        setDepartment(null);
       }
     } catch {
       setError('An unexpected error occurred');
@@ -169,7 +182,7 @@ export function CreateUserModal({ onClose, canCreateAdmin, actorId, actorName, c
                 {canCreateAdmin && (
                   <button
                     type="button"
-                    onClick={() => setRole('Admin')}
+                    onClick={() => { setRole('Admin'); setDepartment(null); }}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-all ${
                       role === 'Admin'
                         ? 'bg-accent border-accent text-white'
@@ -183,6 +196,41 @@ export function CreateUserModal({ onClose, canCreateAdmin, actorId, actorName, c
                 )}
               </div>
             </div>
+
+            {/* Department selection — only for User role */}
+            {role === 'User' && (
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                  <Building2 className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                  Department *
+                </label>
+                <div className="space-y-2">
+                  {USER_DEPARTMENTS.map((dept) => (
+                    <label
+                      key={dept}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg border cursor-pointer transition-all ${
+                        department === dept
+                          ? 'border-primary bg-primary/10'
+                          : 'hover:border-primary/50'
+                      }`}
+                      style={department !== dept ? { backgroundColor: 'var(--input-bg)', borderColor: 'var(--border-color)' } : {}}
+                    >
+                      <input
+                        type="radio"
+                        name="department"
+                        value={dept}
+                        checked={department === dept}
+                        onChange={() => setDepartment(dept)}
+                        className="w-4 h-4 text-primary accent-primary"
+                      />
+                      <span className="text-sm font-medium" style={{ color: department === dept ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                        {dept}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center gap-3 pt-4">
               <button
