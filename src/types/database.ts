@@ -40,6 +40,7 @@ export interface Task {
   submission_note: string | null;
   admin_feedback: string | null;
   pow_url: string | null;
+  issue_state: string | null;
   submitted_at: string | null;
   approved_at: string | null;
   created_at: string;

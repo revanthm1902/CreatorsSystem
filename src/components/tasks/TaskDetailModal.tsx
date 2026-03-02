@@ -233,7 +233,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 className="underline truncate" style={{ color: 'var(--color-primary)' }}>
                 {task.pow_url}
               </a>
-              <GHIssueBadge url={task.pow_url} />
+              <GHIssueBadge url={task.pow_url} dbState={task.issue_state} />
             </div>
           )}
 
