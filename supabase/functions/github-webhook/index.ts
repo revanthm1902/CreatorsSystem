@@ -1,3 +1,7 @@
+// @ts-nocheck — Deno runtime file; Node/tsc type errors here are false positives.
+// This function runs on Supabase's Deno edge runtime, not Node.js.
+// Install the "Deno" VS Code extension for proper intellisense.
+
 /**
  * Supabase Edge Function — GitHub Webhook Receiver
  *

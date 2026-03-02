@@ -159,13 +159,11 @@ function JsonViewer({ data }: { data: Record<string, unknown> }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function WebhooksPage() {
-  const { user, profile } = useAuthStore();
+  const { profile } = useAuthStore();
 
   // Access guard (double-check even though sidebar + route also guard)
   const webhookEnabled = import.meta.env.VITE_WEBHOOK_ENABLED === 'true';
-  const isFrank =
-    (user?.email ?? '').toLowerCase() === 'frank@aryverse.com' ||
-    (profile?.full_name ?? '').toLowerCase().includes('frank');
+  const isPrivileged = profile?.role === 'Admin' || profile?.role === 'Director';
 
   const {
     webhooks, selectedId, eventTypes,
@@ -179,7 +177,7 @@ export function WebhooksPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    if (webhookEnabled && isFrank) {
+    if (webhookEnabled && isPrivileged) {
       fetch();
     }
     return () => { reset(); };
@@ -187,7 +185,7 @@ export function WebhooksPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!webhookEnabled || !isFrank) {
+  if (!webhookEnabled || !isPrivileged) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <AlertTriangle className="w-12 h-12" style={{ color: 'var(--text-muted)' }} />
@@ -264,7 +262,7 @@ export function WebhooksPage() {
           style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-elevated)' }}
         >
           {/* Event type filter */}
-          <div className="flex flex-col gap-1 min-w-[160px]">
+          <div className="flex flex-col gap-1 min-w-40">
             <label className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
               Event Type
             </label>
@@ -286,7 +284,7 @@ export function WebhooksPage() {
           </div>
 
           {/* Repository filter */}
-          <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+          <div className="flex flex-col gap-1 flex-1 min-w-50">
             <label className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
               Repository
             </label>

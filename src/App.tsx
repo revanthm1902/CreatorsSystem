@@ -18,15 +18,13 @@ const WEBHOOK_FEATURE_ENABLED = import.meta.env.VITE_WEBHOOK_ENABLED === 'true';
 
 /**
  * Inner guard rendered at /webhooks.
- * Allows access if VITE_WEBHOOK_ENABLED=true and the signed-in user's
- * email is frank@aryverse.com OR their display name contains "frank".
+ * Allows access if VITE_WEBHOOK_ENABLED=true and the signed-in user
+ * is an Admin or Director.
  */
 function WebhooksGuard() {
-  const { user, profile } = useAuthStore();
-  const isFrank =
-    (user?.email ?? '').toLowerCase() === 'frank@aryverse.com' ||
-    (profile?.full_name ?? '').toLowerCase().includes('frank');
-  if (!WEBHOOK_FEATURE_ENABLED || !isFrank) {
+  const { profile } = useAuthStore();
+  const isPrivileged = profile?.role === 'Admin' || profile?.role === 'Director';
+  if (!WEBHOOK_FEATURE_ENABLED || !isPrivileged) {
     return <Navigate to="/dashboard" replace />;
   }
   return <WebhooksPage />;

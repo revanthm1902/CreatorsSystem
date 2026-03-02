@@ -72,12 +72,9 @@ export function Sidebar() {
   const { profile, signOut, user } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
 
-  // Show the Webhooks tab only when the env flag is set AND the signed-in
-  // user is frank@aryverse.com or their display name contains "frank".
-  const isFrank =
-    (user?.email ?? '').toLowerCase() === 'frank@aryverse.com' ||
-    (profile?.full_name ?? '').toLowerCase().includes('frank');
-  const showWebhooksTab = WEBHOOK_FEATURE_ENABLED && isFrank;
+  // Show the Webhooks tab when the env flag is set AND the user is an Admin or Director.
+  const isPrivileged = profile?.role === 'Admin' || profile?.role === 'Director';
+  const showWebhooksTab = WEBHOOK_FEATURE_ENABLED && isPrivileged;
   const isActivityOpen = useActivityStore((s) => s.isPanelOpen);
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
