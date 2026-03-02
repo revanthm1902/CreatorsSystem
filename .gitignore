@@ -49,6 +49,10 @@ coverage
 # TypeScript
 *.tsbuildinfo
 
+# Excel exports (generated files + Excel lock files)
+*.xlsx
+~$*.xlsx
+
 # Supabase
 .supabase
 supabase/.temp

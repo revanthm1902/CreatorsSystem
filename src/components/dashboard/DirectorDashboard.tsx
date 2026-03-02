@@ -6,6 +6,7 @@ import { TaskCard } from '../tasks/TaskCard';
 import { CreateTaskModal } from '../tasks/CreateTaskModal';
 import { StatCard } from '../ui/StatCard';
 import { ResetPasswordModal } from './ResetPasswordModal';
+import { exportToExcel } from '../../lib/exportExcel';
 
 import {
   Plus,
@@ -18,6 +19,8 @@ import {
   ShieldAlert,
   KeyRound,
   X,
+  Download,
+  Loader2,
 } from 'lucide-react';
 
 export function DirectorDashboard() {
@@ -26,6 +29,16 @@ export function DirectorDashboard() {
   const { users, fetchUsers, leaderboard, fetchLeaderboard, passwordResetRequests, fetchPasswordResetRequests, resetUserPassword, dismissPasswordResetRequest } = useUserStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [resetModal, setResetModal] = useState<{ requestId: string; email: string } | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportToExcel();
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     fetchTasks(undefined, profile?.role, true);
@@ -59,13 +72,25 @@ export function DirectorDashboard() {
             Welcome back, {profile?.full_name}
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all font-medium w-full sm:w-auto"
-        >
-          <Plus className="w-5 h-5" />
-          Create Task
-        </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium w-full sm:w-auto border disabled:opacity-60"
+            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+            title="Export all data to Excel"
+          >
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {exporting ? 'Exporting…' : 'Export'}
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all font-medium w-full sm:w-auto"
+          >
+            <Plus className="w-5 h-5" />
+            Create Task
+          </button>
+        </div>
       </div>
 
       {/* Stats Grid */}
