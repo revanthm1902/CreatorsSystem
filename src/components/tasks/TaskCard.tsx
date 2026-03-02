@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import type { Task } from '../../types/database';
 import { TaskStatusBadge } from './TaskStatusBadge';
 import { TaskCountdown } from './TaskCountdown';
+import { logger } from '../../lib/logger';
 import { TaskDetailModal } from './TaskDetailModal';
 import { SubmitTaskModal } from './SubmitTaskModal';
 import { FeedbackModal } from './FeedbackModal';
@@ -68,8 +69,16 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
     if (!profile) return;
     setLoading(true);
     try {
-      await updateTaskStatus(task.id, 'Under Review', profile.id, new Date().toISOString(), note, powUrl);
+      logger.info('TaskCard', 'handleSubmit start', { taskId: task.id });
+      const result = await updateTaskStatus(task.id, 'Under Review', profile.id, new Date().toISOString(), note, powUrl);
+      if (result.error) {
+        logger.error('TaskCard', 'handleSubmit failed', { taskId: task.id, error: result.error });
+      } else {
+        logger.info('TaskCard', 'handleSubmit succeeded', { taskId: task.id });
+      }
       setShowSubmitModal(false);
+    } catch (err) {
+      logger.error('TaskCard', 'handleSubmit exception', { taskId: task.id, error: String(err) });
     } finally {
       setLoading(false);
     }
@@ -79,8 +88,16 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
     if (!profile) return;
     setLoading(true);
     try {
-      await approveTask(task.id, task.assigned_to, task.tokens, task.deadline, profile.id, bonusTokens);
+      logger.info('TaskCard', 'handleApprove start', { taskId: task.id, bonusTokens });
+      const result = await approveTask(task.id, task.assigned_to, task.tokens, task.deadline, profile.id, bonusTokens);
+      if (result.error) {
+        logger.error('TaskCard', 'handleApprove failed', { taskId: task.id, error: result.error });
+      } else {
+        logger.info('TaskCard', 'handleApprove succeeded', { taskId: task.id });
+      }
       setShowApproveModal(false);
+    } catch (err) {
+      logger.error('TaskCard', 'handleApprove exception', { taskId: task.id, error: String(err) });
     } finally {
       setLoading(false);
     }
@@ -90,7 +107,15 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
     if (!profile) return;
     setLoading(true);
     try {
-      await rejectTask(task.id, profile.id);
+      logger.info('TaskCard', 'handleReject start', { taskId: task.id });
+      const result = await rejectTask(task.id, profile.id);
+      if (result.error) {
+        logger.error('TaskCard', 'handleReject failed', { taskId: task.id, error: result.error });
+      } else {
+        logger.info('TaskCard', 'handleReject succeeded', { taskId: task.id });
+      }
+    } catch (err) {
+      logger.error('TaskCard', 'handleReject exception', { taskId: task.id, error: String(err) });
     } finally {
       setLoading(false);
     }
@@ -100,7 +125,15 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
     if (!profile) return;
     setLoading(true);
     try {
-      await reassignTask(task.id, profile.id);
+      logger.info('TaskCard', 'handleReassign start', { taskId: task.id });
+      const result = await reassignTask(task.id, profile.id);
+      if (result.error) {
+        logger.error('TaskCard', 'handleReassign failed', { taskId: task.id, error: result.error });
+      } else {
+        logger.info('TaskCard', 'handleReassign succeeded', { taskId: task.id });
+      }
+    } catch (err) {
+      logger.error('TaskCard', 'handleReassign exception', { taskId: task.id, error: String(err) });
     } finally {
       setLoading(false);
     }
@@ -110,7 +143,15 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
     if (!profile) return;
     setLoading(true);
     try {
-      await approveTaskByDirector(task.id, profile.id);
+      logger.info('TaskCard', 'handleDirectorApprove start', { taskId: task.id });
+      const result = await approveTaskByDirector(task.id, profile.id);
+      if (result.error) {
+        logger.error('TaskCard', 'handleDirectorApprove failed', { taskId: task.id, error: result.error });
+      } else {
+        logger.info('TaskCard', 'handleDirectorApprove succeeded', { taskId: task.id });
+      }
+    } catch (err) {
+      logger.error('TaskCard', 'handleDirectorApprove exception', { taskId: task.id, error: String(err) });
     } finally {
       setLoading(false);
     }
@@ -120,8 +161,16 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
     if (!profile) return;
     setLoading(true);
     try {
-      await addFeedback(task.id, feedback);
+      logger.info('TaskCard', 'handleSaveFeedback start', { taskId: task.id });
+      const result = await addFeedback(task.id, feedback);
+      if (result.error) {
+        logger.error('TaskCard', 'handleSaveFeedback failed', { taskId: task.id, error: result.error });
+      } else {
+        logger.info('TaskCard', 'handleSaveFeedback succeeded', { taskId: task.id });
+      }
       setShowFeedbackModal(false);
+    } catch (err) {
+      logger.error('TaskCard', 'handleSaveFeedback exception', { taskId: task.id, error: String(err) });
     } finally {
       setLoading(false);
     }
@@ -131,8 +180,16 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
     if (!profile) return;
     setLoading(true);
     try {
-      await deleteTask(task.id, profile.id);
+      logger.info('TaskCard', 'handleDelete start', { taskId: task.id });
+      const result = await deleteTask(task.id, profile.id);
+      if (result.error) {
+        logger.error('TaskCard', 'handleDelete failed', { taskId: task.id, error: result.error });
+      } else {
+        logger.info('TaskCard', 'handleDelete succeeded', { taskId: task.id });
+      }
       setShowDeleteConfirm(false);
+    } catch (err) {
+      logger.error('TaskCard', 'handleDelete exception', { taskId: task.id, error: String(err) });
     } finally {
       setLoading(false);
     }
@@ -142,10 +199,16 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
     if (!profile) return;
     setLoading(true);
     try {
+      logger.info('TaskCard', 'handleExtendDeadline start', { taskId: task.id });
       const result = await extendDeadline(task.id, newDeadline, profile.id);
-      if (!result.error) {
+      if (result.error) {
+        logger.error('TaskCard', 'handleExtendDeadline failed', { taskId: task.id, error: result.error });
+      } else {
+        logger.info('TaskCard', 'handleExtendDeadline succeeded', { taskId: task.id });
         setShowExtendModal(false);
       }
+    } catch (err) {
+      logger.error('TaskCard', 'handleExtendDeadline exception', { taskId: task.id, error: String(err) });
     } finally {
       setLoading(false);
     }

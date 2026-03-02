@@ -74,55 +74,77 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     const state = get();
     const now = Date.now();
 
-    if (state.loading) return;
+    if (state.loading) {
+      logger.debug(CAT, 'fetchActivities skipped — already loading');
+      return;
+    }
     if (!force && state.initialized && (now - state.lastFetch) < CACHE_DURATION) return;
 
     set({ loading: true });
 
-    const { data, error } = await activityServiceMod.fetchActivities();
+    try {
+      const { data, error } = await activityServiceMod.fetchActivities();
 
-    if (!error && data) {
-      const lastRead = get().lastReadAt;
-      const unreadCount = lastRead
-        ? data.filter((a) => new Date(a.created_at) > new Date(lastRead)).length
-        : data.length;
+      if (!error && data) {
+        const lastRead = get().lastReadAt;
+        const unreadCount = lastRead
+          ? data.filter((a) => new Date(a.created_at) > new Date(lastRead)).length
+          : data.length;
 
-      set({
-        activities: data,
-        loading: false,
-        initialized: true,
-        lastFetch: Date.now(),
-        unreadCount,
-      });
-    } else {
-      set({ loading: false, initialized: true });
-      logger.error(CAT, 'fetchActivities failed', { error });
+        set({
+          activities: data,
+          initialized: true,
+          lastFetch: Date.now(),
+          unreadCount,
+        });
+      } else {
+        set({ initialized: true });
+        logger.error(CAT, 'fetchActivities failed', { error });
+      }
+    } catch (err) {
+      logger.error(CAT, 'fetchActivities exception', { error: String(err) });
+    } finally {
+      set({ loading: false });
     }
   },
 
   logActivity: async (activity: ActivityLogInsert) => {
-    await activityServiceMod.insertActivity(activity);
+    try {
+      await activityServiceMod.insertActivity(activity);
+    } catch (err) {
+      logger.error(CAT, 'logActivity exception', { error: String(err) });
+    }
   },
 
   deleteActivity: async (activityId: string) => {
-    const { error } = await activityServiceMod.deleteActivityEntry(activityId);
+    try {
+      const { error } = await activityServiceMod.deleteActivityEntry(activityId);
 
-    // Remove from local state regardless (optimistic)
-    set((s) => ({
-      activities: s.activities.filter((a) => a.id !== activityId),
-    }));
+      // Remove from local state regardless (optimistic)
+      set((s) => ({
+        activities: s.activities.filter((a) => a.id !== activityId),
+      }));
 
-    return { error };
+      return { error };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'deleteActivity exception', { activityId, error: message });
+      return { error: message };
+    }
   },
 
   postCustomMessage: async (actorId: string, message: string) => {
-    await activityServiceMod.insertActivity({
-      actor_id: actorId,
-      action_type: 'custom_message',
-      target_user_id: null,
-      task_id: null,
-      message,
-    });
+    try {
+      await activityServiceMod.insertActivity({
+        actor_id: actorId,
+        action_type: 'custom_message',
+        target_user_id: null,
+        task_id: null,
+        message,
+      });
+    } catch (err) {
+      logger.error(CAT, 'postCustomMessage exception', { error: String(err) });
+    }
   },
 
   subscribeToActivities: () => {

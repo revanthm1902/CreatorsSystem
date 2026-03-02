@@ -557,12 +557,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   // Link pow_url to existing task
   // -----------------------------------------------------------------------
   linkPowUrl: async (taskId, url, issueState) => {
-    const val = url || null;
-    const fields: Partial<Task> = { pow_url: val, issue_state: val ? (issueState ?? null) : null };
-    const { error } = await taskService.updateTask(taskId, fields);
-    if (error) return { error };
-    set(s => ({ tasks: s.tasks.map(t => t.id === taskId ? { ...t, ...fields } : t) }));
-    return { error: null };
+    try {
+      const val = url || null;
+      const fields: Partial<Task> = { pow_url: val, issue_state: val ? (issueState ?? null) : null };
+      const { error } = await taskService.updateTask(taskId, fields);
+      if (error) return { error };
+      set(s => ({ tasks: s.tasks.map(t => t.id === taskId ? { ...t, ...fields } : t) }));
+      logger.debug(CAT, 'linkPowUrl succeeded', { taskId });
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'linkPowUrl exception', { taskId, error: message });
+      return { error: message };
+    }
   },
 
   refreshIssueStates: async () => {
