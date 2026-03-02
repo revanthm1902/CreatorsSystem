@@ -21,6 +21,7 @@ export interface Profile {
   github_url: string | null;
   resume_url: string | null;
   department: Department | null;
+  banked_minutes: number;
   created_at: string;
   updated_at: string;
 }
