@@ -17,6 +17,7 @@ import * as pointsService from '../services/pointsService';
 import * as activityService from '../services/activityService';
 import * as profileService from '../services/profileService';
 import { logger } from '../lib/logger';
+import { supabase } from '../lib/supabase';
 import { serverLog } from '../services/serverLogService';
 
 const CAT = 'taskStore';
@@ -31,7 +32,7 @@ interface TaskState {
   fetchTasks: (userId?: string, role?: string, force?: boolean) => Promise<void>;
   createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback' | 'original_deadline'>, creatorRole: string) => Promise<{ error: string | null }>;
   editTask: (taskId: string, updates: { title: string; description: string; deadline: string; tokens: number; assigned_to: string }, actorId: string, actorRole: string) => Promise<{ error: string | null }>;
-  updateTaskStatus: (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string, submissionNote?: string) => Promise<{ error: string | null }>;
+  updateTaskStatus: (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string, submissionNote?: string, powUrl?: string) => Promise<{ error: string | null }>;
   approveTask: (taskId: string, userId: string, tokens: number, deadline: string, actorId: string, bonusTokens?: number) => Promise<{ error: string | null }>;
   rejectTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   reassignTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
@@ -39,6 +40,7 @@ interface TaskState {
   addFeedback: (taskId: string, feedback: string) => Promise<{ error: string | null }>;
   extendDeadline: (taskId: string, newDeadline: string, actorId: string) => Promise<{ error: string | null }>;
   deleteTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
+  linkPowUrl: (taskId: string, url: string) => Promise<{ error: string | null }>;
   subscribeToTasks: () => () => void;
   reset: () => void;
 }
@@ -99,6 +101,23 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       logger.info(CAT, 'createTask — insert succeeded, updating state', { taskId: data.id });
       set((s) => ({ tasks: [data, ...s.tasks] }));
+
+      // Apply banked time: extend deadline & reset user's bank (fire-and-forget)
+      supabase.from('profiles').select('banked_minutes').eq('id', task.assigned_to).single()
+        .then(({ data: p }) => {
+          if (p && p.banked_minutes > 0) {
+            const extended = new Date(data.deadline);
+            extended.setMinutes(extended.getMinutes() + p.banked_minutes);
+            const newDl = extended.toISOString();
+            Promise.all([
+              taskService.updateTask(data.id, { deadline: newDl }),
+              supabase.from('profiles').update({ banked_minutes: 0 }).eq('id', task.assigned_to),
+            ]).then(() => {
+              set((s) => ({ tasks: s.tasks.map(t => t.id === data.id ? { ...t, deadline: newDl } : t) }));
+              logger.info(CAT, 'applied banked time to task', { taskId: data.id, bankedMin: p.banked_minutes });
+            });
+          }
+        }).catch(() => {});
 
       // Activity logging (best-effort, don't block return)
       logger.debug(CAT, 'createTask — resolving profile names for activity');
@@ -181,10 +200,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   // -----------------------------------------------------------------------
   // Status update (user submits work)
   // -----------------------------------------------------------------------
-  updateTaskStatus: async (taskId, status, actorId, submittedAt?, submissionNote?) => {
-    const extras: { submitted_at?: string; submission_note?: string } = {};
+  updateTaskStatus: async (taskId, status, actorId, submittedAt?, submissionNote?, powUrl?) => {
+    const extras: { submitted_at?: string; submission_note?: string; pow_url?: string } = {};
     if (submittedAt) extras.submitted_at = submittedAt;
     if (submissionNote !== undefined) extras.submission_note = submissionNote;
+    if (powUrl) extras.pow_url = powUrl;
 
     try {
       const { error } = await taskService.updateTaskStatus(taskId, status, Object.keys(extras).length ? extras : undefined);
@@ -199,6 +219,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       }));
 
       if (status === 'Under Review' && task) {
+        // Bank remaining time if submitted early
+        const remaining = Math.max(0, Math.floor((new Date(task.deadline).getTime() - Date.now()) / 60000));
+        if (remaining > 0) {
+          supabase.rpc('increment_banked_minutes', { p_user_id: actorId, p_minutes: remaining }).then(() =>
+            logger.info(CAT, 'banked early-finish time', { minutes: remaining, userId: actorId })
+          ).catch(() => {});
+        }
         // Fire-and-forget activity log
         profileService.resolveProfileNames([actorId])
           .then((profiles) => {
@@ -521,6 +548,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       logger.error(CAT, 'extendDeadline exception', { error: message });
       return { error: message };
     }
+  },
+
+  // -----------------------------------------------------------------------
+  // Link pow_url to existing task
+  // -----------------------------------------------------------------------
+  linkPowUrl: async (taskId, url) => {
+    const val = url || null;
+    const { error } = await taskService.updateTask(taskId, { pow_url: val });
+    if (error) return { error };
+    set(s => ({ tasks: s.tasks.map(t => t.id === taskId ? { ...t, pow_url: val } : t) }));
+    return { error: null };
   },
 
   // -----------------------------------------------------------------------

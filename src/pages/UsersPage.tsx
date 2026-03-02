@@ -15,6 +15,8 @@ import {
   Building2,
   ChevronDown,
   Pencil,
+  ArrowUpDown,
+  MessageCircle,
 } from 'lucide-react';
 import type { UserRole, Profile } from '../types/database';
 import { USER_DEPARTMENTS } from '../types/database';
@@ -29,6 +31,13 @@ export function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('All');
   const [editingDeptUserId, setEditingDeptUserId] = useState<string | null>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; openUp: boolean }>({ top: 0, left: 0, openUp: false });
+  const [sortField, setSortField] = useState<'department' | 'tokens' | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const toggleSort = (field: 'department' | 'tokens') => {
+    if (sortField === field) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { setSortField(field); setSortDir('asc'); }
+  };
 
   const openDeptDropdown = (userId: string, btnEl: HTMLButtonElement) => {
     if (editingDeptUserId === userId) {
@@ -47,9 +56,11 @@ export function UsersPage() {
   };
 
   const filteredUsers = useMemo(() => {
-    if (roleFilter === 'All') return users;
-    return users.filter((u) => u.role === roleFilter);
-  }, [users, roleFilter]);
+    let list = roleFilter === 'All' ? [...users] : users.filter((u) => u.role === roleFilter);
+    if (sortField === 'department') list.sort((a, b) => ((a.department || '') < (b.department || '') ? -1 : 1) * (sortDir === 'asc' ? 1 : -1));
+    else if (sortField === 'tokens') list.sort((a, b) => (a.total_tokens - b.total_tokens) * (sortDir === 'asc' ? 1 : -1));
+    return list;
+  }, [users, roleFilter, sortField, sortDir]);
 
   const roleCounts = useMemo(() => ({
     All: users.length,
@@ -184,8 +195,14 @@ export function UsersPage() {
           <span>User</span>
           <span>Employee ID</span>
           <span>Role</span>
-          <span>Department</span>
-          {(roleFilter === 'User' || roleFilter === 'All') && <span>Tokens</span>}
+          <button className="flex items-center gap-1 hover:text-primary transition-colors" onClick={() => toggleSort('department')}>
+            Department <ArrowUpDown className="w-3 h-3" />{sortField === 'department' && (sortDir === 'asc' ? ' ↑' : ' ↓')}
+          </button>
+          {(roleFilter === 'User' || roleFilter === 'All') && (
+            <button className="flex items-center gap-1 hover:text-primary transition-colors" onClick={() => toggleSort('tokens')}>
+              Tokens <ArrowUpDown className="w-3 h-3" />{sortField === 'tokens' && (sortDir === 'asc' ? ' ↑' : ' ↓')}
+            </button>
+          )}
           <span className="text-right">Actions</span>
         </div>
         <div className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
@@ -279,7 +296,18 @@ export function UsersPage() {
                   </div>
                 )}
                 <div className="flex items-center justify-end gap-1">
-                  {/* Give Tokens button */}
+                  {user.phone && (
+                    <a
+                      href={`https://wa.me/${user.phone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2 hover:text-green-500 hover:bg-green-500/10 rounded-lg transition-all"
+                      style={{ color: 'var(--text-secondary)' }}
+                      title="WhatsApp"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </a>
+                  )}
                   {canGiveTokens(user) && (
                     <button
                       onClick={() => setGiveTokensTarget(user)}
@@ -332,6 +360,18 @@ export function UsersPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    {user.phone && (
+                      <a
+                        href={`https://wa.me/${user.phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-2 hover:text-green-500 hover:bg-green-500/10 rounded-lg transition-all"
+                        style={{ color: 'var(--text-secondary)' }}
+                        title="WhatsApp"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </a>
+                    )}
                     {canGiveTokens(user) && (
                       <button
                         onClick={() => setGiveTokensTarget(user)}

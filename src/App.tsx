@@ -8,27 +8,10 @@ import { LeaderboardPage } from './pages/LeaderboardPage';
 import { UsersPage } from './pages/UsersPage';
 import { TasksPage } from './pages/TasksPage';
 import { ProfileSettingsPage } from './pages/ProfileSettingsPage';
-import { WebhooksPage } from './pages/WebhooksPage';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { ProtectedRoute } from './components/routing/ProtectedRoute';
-
-// Webhook feature gate (mirrors the sidebar check)
-const WEBHOOK_FEATURE_ENABLED = import.meta.env.VITE_WEBHOOK_ENABLED === 'true';
-const WEBHOOK_ALLOWED_EMAIL   = (import.meta.env.VITE_WEBHOOK_ALLOWED_EMAIL ?? '') as string;
-
-/**
- * Inner guard rendered at /webhooks — redirects to /dashboard if the
- * signed-in user is not the designated super-admin, keeping the route
- * non-explorable even when the env var is set.
- */
-function WebhooksGuard() {
-  const { user } = useAuthStore();
-  if (!WEBHOOK_FEATURE_ENABLED || !WEBHOOK_ALLOWED_EMAIL || user?.email !== WEBHOOK_ALLOWED_EMAIL) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  return <WebhooksPage />;
-}
+import { GitHubSettingsPage } from './pages/GitHubSettingsPage';
 
 function App() {
   const { initialize, initialized, user, profile } = useAuthStore();
@@ -104,18 +87,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* ── GitHub Webhooks viewer (super-admin, env-gated) ──────────── */}
-          {WEBHOOK_FEATURE_ENABLED && WEBHOOK_ALLOWED_EMAIL && (
-            <Route
-              path="/webhooks"
-              element={
-                <ProtectedRoute>
-                  <WebhooksGuard />
-                </ProtectedRoute>
-              }
-            />
-          )}
+          <Route
+            path="/github-settings"
+            element={
+              <ProtectedRoute allowedRoles={['Director', 'Admin']}>
+                <GitHubSettingsPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* Redirect root to dashboard or login */}

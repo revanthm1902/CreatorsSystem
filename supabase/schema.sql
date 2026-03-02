@@ -27,6 +27,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS linkedin_url TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS github_url TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS resume_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banked_minutes INTEGER DEFAULT 0;
 
 -- 2. Create tasks table
 CREATE TABLE IF NOT EXISTS public.tasks (
@@ -54,6 +55,9 @@ ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS admin_feedback TEXT;
 
 -- Migration: Add original_deadline column to track deadline extensions
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS original_deadline TIMESTAMPTZ;
+
+-- Migration: Add pow_url column for Proof of Work links
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS pow_url TEXT;
 
 -- 3. Create points log table
 CREATE TABLE IF NOT EXISTS public.points_log (
@@ -633,3 +637,9 @@ CREATE POLICY IF NOT EXISTS "Directors and admins can delete department_access"
   ON public.department_access FOR DELETE USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('Director', 'Admin'))
   );
+
+-- Increment banked minutes (early-finish time bank)
+CREATE OR REPLACE FUNCTION public.increment_banked_minutes(p_user_id UUID, p_minutes INTEGER)
+RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
+  UPDATE public.profiles SET banked_minutes = banked_minutes + p_minutes WHERE id = p_user_id;
+$$;

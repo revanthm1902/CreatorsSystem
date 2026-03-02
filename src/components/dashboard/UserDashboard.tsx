@@ -4,7 +4,7 @@ import { useTaskStore } from '../../stores/taskStore';
 import { TaskCard } from '../tasks/TaskCard';
 import { StatCard } from '../ui/StatCard';
 
-import { ClipboardList, Zap, CheckCircle, Clock } from 'lucide-react';
+import { ClipboardList, Zap, CheckCircle, Clock, Timer } from 'lucide-react';
 
 export function UserDashboard() {
   const { profile } = useAuthStore();
@@ -43,6 +43,13 @@ export function UserDashboard() {
           <span className="font-bold text-base sm:text-lg">{profile?.total_tokens || 0}</span>
           <span className="text-xs sm:text-sm opacity-70">Tokens</span>
         </div>
+        {!!profile?.banked_minutes && (
+          <div className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-green-500/10 text-green-500 rounded-lg w-fit">
+            <Timer className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="font-bold text-base sm:text-lg">{profile.banked_minutes >= 1440 ? `${Math.floor(profile.banked_minutes / 1440)}d ${Math.floor((profile.banked_minutes % 1440) / 60)}h` : profile.banked_minutes >= 60 ? `${Math.floor(profile.banked_minutes / 60)}h ${profile.banked_minutes % 60}m` : `${profile.banked_minutes}m`}</span>
+            <span className="text-xs sm:text-sm opacity-70">Banked</span>
+          </div>
+        )}
       </div>
 
       {/* Stats */}

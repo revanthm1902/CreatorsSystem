@@ -46,6 +46,7 @@ interface AuthState {
 
 let _authSubscription: { unsubscribe: () => void } | null = null;
 let _signingIn = false;   // guards against onAuthStateChange / signIn race
+let _initialized = false; // guards against React StrictMode double-invoke
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -54,6 +55,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialized: false,
 
   initialize: async () => {
+    if (_initialized) return;
+    _initialized = true;
     logger.info(CAT, 'initialize');
     set({ loading: true });
 

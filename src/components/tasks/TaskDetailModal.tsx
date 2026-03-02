@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import type { Task } from '../../types/database';
 import { TaskStatusBadge } from './TaskStatusBadge';
 import { TaskCountdown } from './TaskCountdown';
+import { Markdown } from '../ui/Markdown';
 import {
   Zap,
   X,
@@ -15,7 +16,9 @@ import {
   ClipboardList,
   MessageSquare,
   FileText,
+  ExternalLink,
 } from 'lucide-react';
+import { GHIssueBadge } from './GHIssueBadge';
 
 interface TaskDetailModalProps {
   task: Task;
@@ -30,7 +33,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
       onClick={onClose}
     >
       <div
-        className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-y-auto"
+        className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg lg:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto"
         style={{
           backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border-color)',
@@ -69,18 +72,17 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
         <div className="p-4 sm:p-6 space-y-6">
           {/* Description */}
           <div>
-            <h3
+            <p
               className="text-sm font-medium mb-2"
               style={{ color: 'var(--text-secondary)' }}
             >
               Description / Responsibility
-            </h3>
-            <p
-              className="text-base leading-relaxed whitespace-pre-wrap"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              {task.description || 'No description provided'}
             </p>
+            {task.description ? (
+              <Markdown className="text-sm">{task.description}</Markdown>
+            ) : (
+              <p className="text-base" style={{ color: 'var(--text-muted)' }}>No description provided</p>
+            )}
           </div>
 
           {/* Details Grid */}
@@ -220,6 +222,18 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   {task.submission_note}
                 </p>
               </div>
+            </div>
+          )}
+
+          {task.pow_url && (
+            <div className="flex items-center gap-2 text-sm">
+              <ExternalLink className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+              <span style={{ color: 'var(--text-secondary)' }}>Proof of Work:</span>
+              <a href={task.pow_url} target="_blank" rel="noopener noreferrer"
+                className="underline truncate" style={{ color: 'var(--color-primary)' }}>
+                {task.pow_url}
+              </a>
+              <GHIssueBadge url={task.pow_url} />
             </div>
           )}
 

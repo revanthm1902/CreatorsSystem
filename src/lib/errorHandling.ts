@@ -38,9 +38,11 @@ export async function retryQuery<T>(
       });
       await delay(delayMs * (attempt + 1));
     } catch (err) {
-      if (attempt === retries - 1) {
-        logger.error('retryQuery', `${label} threw after ${retries} attempts`, { error: String(err) });
-        return { data: null, error: { message: 'Network error. Please check your connection.' } };
+      const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+      if (offline || attempt === retries - 1) {
+        const msg = offline ? 'No internet connection.' : 'Network error. Please check your connection.';
+        logger.error('retryQuery', `${label} threw after ${attempt + 1} attempt(s)`, { error: String(err), offline });
+        return { data: null, error: { message: msg } };
       }
       logger.warn('retryQuery', `${label} threw — retrying (${attempt + 1}/${retries})`, {
         error: String(err),
