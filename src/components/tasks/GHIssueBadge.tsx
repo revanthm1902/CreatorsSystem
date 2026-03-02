@@ -9,7 +9,7 @@ interface GHIssueShort { number: number; title: string; state: string; pull_requ
 const GH_RE = /github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/;
 
 /** Compact badge showing GH issue open/closed state. Click → full modal. Refresh button re-fetches state. */
-export function GHIssueBadge({ url, onRefresh }: { url: string; onRefresh?: () => void }) {
+export function GHIssueBadge({ url, dbState, onRefresh }: { url: string; dbState?: string | null; onRefresh?: () => void }) {
   const gh = useMemo(() => loadGHSettings(), []);
   const match = url.match(GH_RE);
   const [issue, setIssue] = useState<IssueData | null>(null);
@@ -30,12 +30,17 @@ export function GHIssueBadge({ url, onRefresh }: { url: string; onRefresh?: () =
   useEffect(() => { fetchIssue(); }, [fetchIssue]);
 
   if (!match) return null;
-  if (!active || !issue) return (
-    <a href={url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border bg-gray-500/15 text-gray-400 border-gray-500/30 hover:bg-gray-500/25 transition-all">
-      <GitPullRequest className="w-3 h-3" />#{num}
-    </a>
-  );
+  if (!active || !issue) {
+    const st = dbState;
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border hover:opacity-80 transition-all ${
+          st === 'open' ? 'bg-green-500/15 text-green-500 border-green-500/30' : st === 'closed' ? 'bg-purple-500/15 text-purple-400 border-purple-500/30' : 'bg-gray-500/15 text-gray-400 border-gray-500/30'
+        }`}>
+        <GitPullRequest className="w-3 h-3" />#{num}{st ? ` ${st}` : ''}
+      </a>
+    );
+  }
 
   const isOpen = issue.state === 'open';
 
@@ -95,7 +100,7 @@ export function GHIssueBadge({ url, onRefresh }: { url: string; onRefresh?: () =
 }
 
 /** Smart issue picker: repo selector → issue list → pick. Also supports edit/unlink. */
-export function LinkIssueButton({ currentUrl, onSave, onUnlink }: { currentUrl?: string | null; onSave: (url: string) => void; onUnlink?: () => void }) {
+export function LinkIssueButton({ currentUrl, onSave, onUnlink }: { currentUrl?: string | null; onSave: (url: string, state?: string) => void; onUnlink?: () => void }) {
   const gh = useMemo(() => loadGHSettings(), []);
   const [open, setOpen] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState(gh.repos.length ? `${gh.repos[0].owner}/${gh.repos[0].repo}` : '');
@@ -117,7 +122,7 @@ export function LinkIssueButton({ currentUrl, onSave, onUnlink }: { currentUrl?:
 
   const pick = (issue: GHIssueShort) => {
     const [owner, repo] = selectedRepo.split('/');
-    onSave(`https://github.com/${owner}/${repo}/issues/${issue.number}`);
+    onSave(`https://github.com/${owner}/${repo}/issues/${issue.number}`, issue.state);
     setOpen(false);
   };
 

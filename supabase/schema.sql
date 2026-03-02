@@ -59,6 +59,9 @@ ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS original_deadline TIMESTAMPTZ;
 -- Migration: Add pow_url column for Proof of Work links
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS pow_url TEXT;
 
+-- Migration: Add issue_state column to cache GH issue open/closed state
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS issue_state TEXT;
+
 -- 3. Create points log table
 CREATE TABLE IF NOT EXISTS public.points_log (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

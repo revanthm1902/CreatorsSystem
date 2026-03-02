@@ -105,7 +105,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
       const result = await createTask({
         title, description, assigned_to: assignedTo, created_by: profile.id,
         deadline: new Date(deadline).toISOString(), tokens, status: 'Pending', director_approved: false,
-        pow_url: powUrl.trim() || null,
+        pow_url: powUrl.trim() || null, issue_state: null,
       }, profile.role);
       if (result.error) setError(result.error);
       else onClose();

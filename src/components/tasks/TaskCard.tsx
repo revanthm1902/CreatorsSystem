@@ -161,7 +161,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
   const canDelete = profile?.role === 'Admin' || profile?.role === 'Director';
   const canExtendDeadline = (profile?.role === 'Admin' || profile?.role === 'Director') && task.status === 'Pending';
   const canGiveFeedback = (profile?.role === 'Admin' || profile?.role === 'Director') && (task.status === 'Completed' || task.status === 'Rejected' || task.status === 'Under Review');
-  const canLinkIssue = ghActive && (profile?.role === 'Admin' || profile?.role === 'Director') && task.status === 'Completed';
+  const canLinkIssue = ghActive && (profile?.role === 'Admin' || profile?.role === 'Director');
   const isDeadlineExtended = !!task.original_deadline;
   const isForeignTask = profile && task.created_by !== profile.id;
   const foreignCreatorName = isForeignTask ? (users.find(u => u.id === task.created_by)?.full_name || 'another admin') : '';
@@ -201,7 +201,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
                 </span>
               )}
               <TaskStatusBadge status={task.status} />
-              {isGHIssue && <GHIssueBadge url={task.pow_url!} />}
+              {isGHIssue && <GHIssueBadge url={task.pow_url!} dbState={task.issue_state} />}
             </div>
           </div>
         </div>
@@ -350,7 +350,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
             {canLinkIssue && (
               <LinkIssueButton
                 currentUrl={task.pow_url}
-                onSave={async url => { await useTaskStore.getState().linkPowUrl(task.id, url); }}
+                onSave={async (url, state) => { await useTaskStore.getState().linkPowUrl(task.id, url, state); }}
                 onUnlink={task.pow_url ? async () => { await useTaskStore.getState().linkPowUrl(task.id, ''); } : undefined}
               />
             )}

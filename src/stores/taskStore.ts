@@ -40,7 +40,8 @@ interface TaskState {
   addFeedback: (taskId: string, feedback: string) => Promise<{ error: string | null }>;
   extendDeadline: (taskId: string, newDeadline: string, actorId: string) => Promise<{ error: string | null }>;
   deleteTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
-  linkPowUrl: (taskId: string, url: string) => Promise<{ error: string | null }>;
+  linkPowUrl: (taskId: string, url: string, issueState?: string | null) => Promise<{ error: string | null }>;
+  refreshIssueStates: () => Promise<void>;
   subscribeToTasks: () => () => void;
   reset: () => void;
 }
@@ -73,6 +74,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       const { data } = await taskService.fetchTasks(userId, role);
       if (data) {
         set({ tasks: data, initialized: true, lastFetch: Date.now() });
+        // Background-refresh GH issue states for users with PAT
+        get().refreshIssueStates();
       }
     } catch (err) {
       logger.error(CAT, 'fetchTasks threw', { error: String(err) });
@@ -103,7 +106,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set((s) => ({ tasks: [data, ...s.tasks] }));
 
       // Apply banked time: extend deadline & reset user's bank (fire-and-forget)
-      supabase.from('profiles').select('banked_minutes').eq('id', task.assigned_to).single()
+      Promise.resolve(supabase.from('profiles').select('banked_minutes').eq('id', task.assigned_to).single())
         .then(({ data: p }) => {
           if (p && p.banked_minutes > 0) {
             const extended = new Date(data.deadline);
@@ -222,7 +225,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         // Bank remaining time if submitted early
         const remaining = Math.max(0, Math.floor((new Date(task.deadline).getTime() - Date.now()) / 60000));
         if (remaining > 0) {
-          supabase.rpc('increment_banked_minutes', { p_user_id: actorId, p_minutes: remaining }).then(() =>
+          Promise.resolve(supabase.rpc('increment_banked_minutes', { p_user_id: actorId, p_minutes: remaining })).then(() =>
             logger.info(CAT, 'banked early-finish time', { minutes: remaining, userId: actorId })
           ).catch(() => {});
         }
@@ -553,12 +556,50 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   // -----------------------------------------------------------------------
   // Link pow_url to existing task
   // -----------------------------------------------------------------------
-  linkPowUrl: async (taskId, url) => {
+  linkPowUrl: async (taskId, url, issueState) => {
     const val = url || null;
-    const { error } = await taskService.updateTask(taskId, { pow_url: val });
+    const fields: Partial<Task> = { pow_url: val, issue_state: val ? (issueState ?? null) : null };
+    const { error } = await taskService.updateTask(taskId, fields);
     if (error) return { error };
-    set(s => ({ tasks: s.tasks.map(t => t.id === taskId ? { ...t, pow_url: val } : t) }));
+    set(s => ({ tasks: s.tasks.map(t => t.id === taskId ? { ...t, ...fields } : t) }));
     return { error: null };
+  },
+
+  refreshIssueStates: async () => {
+    const { loadGHSettings } = await import('../lib/githubSettings');
+    const gh = loadGHSettings();
+    if (!gh.enabled || !gh.token) return;
+    const GH_RE = /github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/;
+    const tasks = get().tasks.filter(t => t.pow_url && GH_RE.test(t.pow_url));
+    if (!tasks.length) return;
+    const byRepo = new Map<string, { id: string; num: string; cur: string | null }[]>();
+    for (const t of tasks) {
+      const m = t.pow_url!.match(GH_RE)!;
+      const key = `${m[1]}/${m[2]}`;
+      if (!byRepo.has(key)) byRepo.set(key, []);
+      byRepo.get(key)!.push({ id: t.id, num: m[3], cur: t.issue_state });
+    }
+    const updates: { id: string; state: string }[] = [];
+    await Promise.all([...byRepo.entries()].map(async ([repo, items]) => {
+      try {
+        const res = await fetch(`https://api.github.com/repos/${repo}/issues?state=all&per_page=100&sort=updated`, {
+          headers: { Authorization: `Bearer ${gh.token}`, Accept: 'application/vnd.github+json' },
+        });
+        if (!res.ok) return;
+        const issues: { number: number; state: string }[] = await res.json();
+        const stateMap = new Map(issues.map(i => [String(i.number), i.state]));
+        for (const item of items) {
+          const s = stateMap.get(item.num);
+          if (s && s !== item.cur) updates.push({ id: item.id, state: s });
+        }
+      } catch { /* ignore */ }
+    }));
+    if (!updates.length) return;
+    await Promise.all(updates.map(u => taskService.updateTask(u.id, { issue_state: u.state })));
+    set(s => {
+      const map = new Map(updates.map(u => [u.id, u.state]));
+      return { tasks: s.tasks.map(t => map.has(t.id) ? { ...t, issue_state: map.get(t.id)! } : t) };
+    });
   },
 
   // -----------------------------------------------------------------------
