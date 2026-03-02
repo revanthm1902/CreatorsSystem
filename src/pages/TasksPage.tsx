@@ -40,9 +40,9 @@ export function TasksPage() {
   const [showAccessManager, setShowAccessManager] = useState(false);
   const [accessRules, setAccessRules] = useState<DepartmentAccess[]>([]);
   const [newRuleFrom, setNewRuleFrom] = useState('');
-  const [newRuleTo, setNewRuleTo] = useState('');
+  const [newRuleTo, setNewRuleTo] = useState<string[]>([]);
   const [newUserRuleUser, setNewUserRuleUser] = useState('');
-  const [newUserRuleTo, setNewUserRuleTo] = useState('');
+  const [newUserRuleTo, setNewUserRuleTo] = useState<string[]>([]);
   const [accessTab, setAccessTab] = useState<'dept' | 'user'>('dept');
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
@@ -65,14 +65,12 @@ export function TasksPage() {
     if (!profile || isAdmin) return;
     setDeptLoading(true);
     try {
-      let departments: string[] = [];
-      if (profile.department) departments = [profile.department];
-
+      // Only show explicitly-granted departments — no auto own-dept access
       const { data: accessibleDepts } = await departmentService.fetchAccessibleDepartments(
         profile.department,
         profile.id,
       );
-      departments = [...new Set([...departments, ...accessibleDepts])];
+      const departments = [...new Set(accessibleDepts)];
       setViewableDepartments(departments);
 
       if (departments.length > 0) {
@@ -170,11 +168,12 @@ export function TasksPage() {
   }, []);
 
   const handleGrantAccess = async () => {
-    if (!newRuleFrom || !newRuleTo || newRuleFrom === newRuleTo) return;
+    const targets = newRuleTo.filter((d) => d !== newRuleFrom);
+    if (!newRuleFrom || targets.length === 0) return;
     setAccessError(null);
-    const { error: err } = await departmentService.grantDepartmentAccess(newRuleFrom, newRuleTo, profile?.id ?? '');
-    if (err) setAccessError(err.includes('duplicate') ? 'This access rule already exists' : err);
-    else { setNewRuleFrom(''); setNewRuleTo(''); await loadAccessRules(); }
+    const { error: err } = await departmentService.grantDepartmentAccessBatch(newRuleFrom, targets, profile?.id ?? '');
+    if (err) setAccessError(err.includes('duplicate') ? 'Some access rules already exist' : err);
+    else { setNewRuleFrom(''); setNewRuleTo([]); await loadAccessRules(); }
   };
 
   const handleRevokeAccess = async (dept: string, canViewDept: string) => {
@@ -184,11 +183,11 @@ export function TasksPage() {
   };
 
   const handleGrantUserAccess = async () => {
-    if (!newUserRuleUser || !newUserRuleTo) return;
+    if (!newUserRuleUser || newUserRuleTo.length === 0) return;
     setAccessError(null);
-    const { error: err } = await departmentService.grantUserDepartmentAccess(newUserRuleUser, newUserRuleTo, profile?.id ?? '');
-    if (err) setAccessError(err.includes('duplicate') ? 'This access rule already exists' : err);
-    else { setNewUserRuleUser(''); setNewUserRuleTo(''); await loadAccessRules(); }
+    const { error: err } = await departmentService.grantUserDepartmentAccessBatch(newUserRuleUser, newUserRuleTo, profile?.id ?? '');
+    if (err) setAccessError(err.includes('duplicate') ? 'Some access rules already exist' : err);
+    else { setNewUserRuleUser(''); setNewUserRuleTo([]); await loadAccessRules(); }
   };
 
   const handleRevokeUserAccess = async (userId: string, canViewDept: string) => {
@@ -352,23 +351,38 @@ export function TasksPage() {
                 </div>
                 <div className="flex-1">
                   <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    Can View Department
+                    Can View Departments
                   </label>
-                  <select
-                    value={newRuleTo}
-                    onChange={(e) => setNewRuleTo(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border text-sm"
-                    style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                  >
-                    <option value="">Select department...</option>
-                    {USER_DEPARTMENTS.filter((d) => d !== newRuleFrom).map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
+                  <div className="flex flex-wrap gap-2">
+                    {USER_DEPARTMENTS.filter((d) => d !== newRuleFrom).map((d) => {
+                      const selected = newRuleTo.includes(d);
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() =>
+                            setNewRuleTo((prev) =>
+                              selected ? prev.filter((x) => x !== d) : [...prev, d],
+                            )
+                          }
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                            selected ? 'ring-2 ring-primary' : ''
+                          }`}
+                          style={{
+                            backgroundColor: selected ? 'var(--color-primary)' : 'var(--bg-main)',
+                            borderColor: selected ? 'var(--color-primary)' : 'var(--border-color)',
+                            color: selected ? 'white' : 'var(--text-primary)',
+                          }}
+                        >
+                          {d}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <button
                   onClick={handleGrantAccess}
-                  disabled={!newRuleFrom || !newRuleTo || newRuleFrom === newRuleTo}
+                  disabled={!newRuleFrom || newRuleTo.length === 0}
                   className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   <Plus className="w-4 h-4" />
@@ -459,23 +473,38 @@ export function TasksPage() {
                 </div>
                 <div className="flex-1">
                   <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    Can View Department
+                    Can View Departments
                   </label>
-                  <select
-                    value={newUserRuleTo}
-                    onChange={(e) => setNewUserRuleTo(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border text-sm"
-                    style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                  >
-                    <option value="">Select department...</option>
-                    {USER_DEPARTMENTS.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
+                  <div className="flex flex-wrap gap-2">
+                    {USER_DEPARTMENTS.map((d) => {
+                      const selected = newUserRuleTo.includes(d);
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() =>
+                            setNewUserRuleTo((prev) =>
+                              selected ? prev.filter((x) => x !== d) : [...prev, d],
+                            )
+                          }
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                            selected ? 'ring-2 ring-primary' : ''
+                          }`}
+                          style={{
+                            backgroundColor: selected ? 'var(--color-primary)' : 'var(--bg-main)',
+                            borderColor: selected ? 'var(--color-primary)' : 'var(--border-color)',
+                            color: selected ? 'white' : 'var(--text-primary)',
+                          }}
+                        >
+                          {d}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <button
                   onClick={handleGrantUserAccess}
-                  disabled={!newUserRuleUser || !newUserRuleTo}
+                  disabled={!newUserRuleUser || newUserRuleTo.length === 0}
                   className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   <Plus className="w-4 h-4" />
