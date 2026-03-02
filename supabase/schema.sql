@@ -553,5 +553,43 @@ CREATE POLICY "Directors can view system logs"
 -- Auto-cleanup: keep only last 30 days of logs (run manually or via cron)
 -- DELETE FROM public.system_logs WHERE created_at < NOW() - INTERVAL '30 days';
 
+-- 22. Admin token credit: accumulate 10% of each approved task's total tokens
+-- Decimal fractions are stored in token_credit_balance; whole tokens are
+-- flushed to total_tokens so the displayed count never shows decimals.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS token_credit_balance FLOAT DEFAULT 0;
+
+CREATE OR REPLACE FUNCTION public.accumulate_admin_credit(
+  p_admin_id UUID,
+  p_credit    FLOAT
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  new_balance  FLOAT;
+  whole_tokens INTEGER;
+BEGIN
+  -- Add the new credit to the running fractional balance
+  UPDATE public.profiles
+  SET token_credit_balance = COALESCE(token_credit_balance, 0) + p_credit
+  WHERE id = p_admin_id
+  RETURNING token_credit_balance INTO new_balance;
+
+  -- How many whole tokens have accumulated?
+  whole_tokens := FLOOR(new_balance)::INTEGER;
+
+  -- Only update further if we have at least 1 whole token to add
+  IF whole_tokens >= 1 THEN
+    UPDATE public.profiles
+    SET total_tokens        = total_tokens + whole_tokens,
+        token_credit_balance = new_balance - whole_tokens,
+        updated_at          = NOW()
+    WHERE id = p_admin_id;
+  END IF;
+END;
+$$;
+
 -- Force PostgREST to reload its schema cache after function changes
 NOTIFY pgrst, 'reload schema';

@@ -13,6 +13,7 @@ import { TaskCountdown } from './TaskCountdown';
 import { TaskDetailModal } from './TaskDetailModal';
 import { SubmitTaskModal } from './SubmitTaskModal';
 import { FeedbackModal } from './FeedbackModal';
+import { ApproveTaskModal } from './ApproveTaskModal';
 import { DeleteTaskConfirm } from './DeleteTaskConfirm';
 import { EditTaskModal } from './EditTaskModal';
 import { ExtendDeadlineModal } from './ExtendDeadlineModal';
@@ -45,6 +46,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
   const [showDetail, setShowDetail] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showExtendModal, setShowExtendModal] = useState(false);
@@ -68,11 +70,12 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
     }
   };
 
-  const handleApprove = async () => {
+  const handleApprove = async (bonusTokens: number) => {
     if (!profile) return;
     setLoading(true);
     try {
-      await approveTask(task.id, task.assigned_to, task.tokens, task.deadline, profile.id);
+      await approveTask(task.id, task.assigned_to, task.tokens, task.deadline, profile.id, bonusTokens);
+      setShowApproveModal(false);
     } finally {
       setLoading(false);
     }
@@ -291,7 +294,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
 
             {canReview && (
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button onClick={handleApprove} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-success hover:bg-success/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium">
+                <button onClick={() => setShowApproveModal(true)} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-success hover:bg-success/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium">
                   {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CheckCircle className="w-4 h-4" /><span>Approve</span></>}
                 </button>
                 <button onClick={handleReassign} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all disabled:opacity-50 font-medium">
@@ -374,6 +377,17 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
           loading={loading}
           onSave={handleSaveFeedback}
           onClose={() => setShowFeedbackModal(false)}
+        />
+      )}
+      {showApproveModal && (
+        <ApproveTaskModal
+          taskTitle={task.title}
+          baseTokens={task.tokens}
+          deadline={task.deadline}
+          submissionNote={task.submission_note}
+          loading={loading}
+          onApprove={handleApprove}
+          onClose={() => setShowApproveModal(false)}
         />
       )}
       {showDeleteConfirm && (

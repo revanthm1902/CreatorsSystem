@@ -32,7 +32,7 @@ interface TaskState {
   createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback' | 'original_deadline'>, creatorRole: string) => Promise<{ error: string | null }>;
   editTask: (taskId: string, updates: { title: string; description: string; deadline: string; tokens: number; assigned_to: string }, actorId: string, actorRole: string) => Promise<{ error: string | null }>;
   updateTaskStatus: (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string, submissionNote?: string) => Promise<{ error: string | null }>;
-  approveTask: (taskId: string, userId: string, tokens: number, deadline: string, actorId: string) => Promise<{ error: string | null }>;
+  approveTask: (taskId: string, userId: string, tokens: number, deadline: string, actorId: string, bonusTokens?: number) => Promise<{ error: string | null }>;
   rejectTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   reassignTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   approveTaskByDirector: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
@@ -263,9 +263,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   // -----------------------------------------------------------------------
   // Admin approves submitted work → award tokens
   // -----------------------------------------------------------------------
-  approveTask: async (taskId, userId, tokens, deadline, actorId) => {
+  approveTask: async (taskId, userId, tokens, deadline, actorId, bonusTokens?) => {
     const approvedAt = new Date().toISOString();
-    const calc = pointsService.calculateTokens(tokens, deadline);
+    const calc = pointsService.calculateTokens(tokens, deadline, bonusTokens);
     const task = get().tasks.find(t => t.id === taskId);
 
     try {
@@ -288,6 +288,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         if (incError) return { error: incError };
       }
 
+      // 4. Admin earns 10% credit of the task's total tokens (fractions accumulate)
+      if (calc.totalTokens > 0) {
+        pointsService.accumulateAdminCredit(actorId, calc.totalTokens)
+          .catch((err) => logger.warn(CAT, 'accumulateAdminCredit failed', { error: String(err) }));
+      }
+
       set((s) => ({
         tasks: s.tasks.map((t) =>
           t.id === taskId ? { ...t, status: 'Completed' as TaskStatus, approved_at: approvedAt } : t,
@@ -296,9 +302,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       // Activity log (fire-and-forget)
       if (task) {
-        const tokenMsg = calc.isOnTime
-          ? `+${tokens} tokens + ${calc.bonusTokens} bonus`
-          : `+${calc.baseTokens} tokens (late, no bonus)`;
+        const tokenMsg = calc.bonusTokens > 0
+          ? `+${calc.baseTokens} tokens + ${calc.bonusTokens} bonus`
+          : `+${calc.baseTokens} tokens`;
 
         profileService.resolveProfileNames([actorId, userId])
           .then((profiles) => {
