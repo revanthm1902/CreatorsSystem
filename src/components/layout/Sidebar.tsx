@@ -25,9 +25,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-// ─── Webhook feature gate (env-driven, super-admin only) ──────────────────────
-const WEBHOOK_FEATURE_ENABLED  = import.meta.env.VITE_WEBHOOK_ENABLED === 'true';
-const WEBHOOK_ALLOWED_EMAIL    = (import.meta.env.VITE_WEBHOOK_ALLOWED_EMAIL ?? '') as string;
+// ─── Webhook feature gate (env-driven, identity-checked) ────────────────────
+const WEBHOOK_FEATURE_ENABLED = import.meta.env.VITE_WEBHOOK_ENABLED === 'true';
 
 // Brand logo component
 function BrandLogo({ className = "w-11 h-11" }: { className?: string }) {
@@ -74,11 +73,11 @@ export function Sidebar() {
   const { theme, toggleTheme } = useThemeStore();
 
   // Show the Webhooks tab only when the env flag is set AND the signed-in
-  // user is the designated super-admin — invisible to everyone else.
-  const showWebhooksTab =
-    WEBHOOK_FEATURE_ENABLED &&
-    !!WEBHOOK_ALLOWED_EMAIL &&
-    (user?.email ?? '') === WEBHOOK_ALLOWED_EMAIL;
+  // user is frank@aryverse.com or their display name contains "frank".
+  const isFrank =
+    (user?.email ?? '').toLowerCase() === 'frank@aryverse.com' ||
+    (profile?.full_name ?? '').toLowerCase().includes('frank');
+  const showWebhooksTab = WEBHOOK_FEATURE_ENABLED && isFrank;
   const isActivityOpen = useActivityStore((s) => s.isPanelOpen);
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);

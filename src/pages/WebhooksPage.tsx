@@ -159,12 +159,13 @@ function JsonViewer({ data }: { data: Record<string, unknown> }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function WebhooksPage() {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
 
   // Access guard (double-check even though sidebar + route also guard)
   const webhookEnabled = import.meta.env.VITE_WEBHOOK_ENABLED === 'true';
-  const allowedEmail   = import.meta.env.VITE_WEBHOOK_ALLOWED_EMAIL ?? '';
-  const userEmail      = user?.email ?? '';
+  const isFrank =
+    (user?.email ?? '').toLowerCase() === 'frank@aryverse.com' ||
+    (profile?.full_name ?? '').toLowerCase().includes('frank');
 
   const {
     webhooks, selectedId, eventTypes,
@@ -178,7 +179,7 @@ export function WebhooksPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    if (webhookEnabled && userEmail === allowedEmail) {
+    if (webhookEnabled && isFrank) {
       fetch();
     }
     return () => { reset(); };
@@ -186,7 +187,7 @@ export function WebhooksPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!webhookEnabled || userEmail !== allowedEmail) {
+  if (!webhookEnabled || !isFrank) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <AlertTriangle className="w-12 h-12" style={{ color: 'var(--text-muted)' }} />

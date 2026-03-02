@@ -13,18 +13,20 @@ import { DashboardLayout } from './components/layout/DashboardLayout';
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { ProtectedRoute } from './components/routing/ProtectedRoute';
 
-// Webhook feature gate (mirrors the sidebar check)
+// Webhook feature gate (env-driven, identity-checked)
 const WEBHOOK_FEATURE_ENABLED = import.meta.env.VITE_WEBHOOK_ENABLED === 'true';
-const WEBHOOK_ALLOWED_EMAIL   = (import.meta.env.VITE_WEBHOOK_ALLOWED_EMAIL ?? '') as string;
 
 /**
- * Inner guard rendered at /webhooks — redirects to /dashboard if the
- * signed-in user is not the designated super-admin, keeping the route
- * non-explorable even when the env var is set.
+ * Inner guard rendered at /webhooks.
+ * Allows access if VITE_WEBHOOK_ENABLED=true and the signed-in user's
+ * email is frank@aryverse.com OR their display name contains "frank".
  */
 function WebhooksGuard() {
-  const { user } = useAuthStore();
-  if (!WEBHOOK_FEATURE_ENABLED || !WEBHOOK_ALLOWED_EMAIL || user?.email !== WEBHOOK_ALLOWED_EMAIL) {
+  const { user, profile } = useAuthStore();
+  const isFrank =
+    (user?.email ?? '').toLowerCase() === 'frank@aryverse.com' ||
+    (profile?.full_name ?? '').toLowerCase().includes('frank');
+  if (!WEBHOOK_FEATURE_ENABLED || !isFrank) {
     return <Navigate to="/dashboard" replace />;
   }
   return <WebhooksPage />;
@@ -105,8 +107,8 @@ function App() {
             }
           />
 
-          {/* ── GitHub Webhooks viewer (super-admin, env-gated) ──────────── */}
-          {WEBHOOK_FEATURE_ENABLED && WEBHOOK_ALLOWED_EMAIL && (
+          {/* ── GitHub Webhooks viewer (frank-only, env-gated) ──────────── */}
+          {WEBHOOK_FEATURE_ENABLED && (
             <Route
               path="/webhooks"
               element={
