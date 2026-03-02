@@ -106,7 +106,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set((s) => ({ tasks: [data, ...s.tasks] }));
 
       // Apply banked time: extend deadline & reset user's bank (fire-and-forget)
-      supabase.from('profiles').select('banked_minutes').eq('id', task.assigned_to).single()
+      Promise.resolve(supabase.from('profiles').select('banked_minutes').eq('id', task.assigned_to).single())
         .then(({ data: p }) => {
           if (p && p.banked_minutes > 0) {
             const extended = new Date(data.deadline);
@@ -225,7 +225,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         // Bank remaining time if submitted early
         const remaining = Math.max(0, Math.floor((new Date(task.deadline).getTime() - Date.now()) / 60000));
         if (remaining > 0) {
-          supabase.rpc('increment_banked_minutes', { p_user_id: actorId, p_minutes: remaining }).then(() =>
+          Promise.resolve(supabase.rpc('increment_banked_minutes', { p_user_id: actorId, p_minutes: remaining })).then(() =>
             logger.info(CAT, 'banked early-finish time', { minutes: remaining, userId: actorId })
           ).catch(() => {});
         }
