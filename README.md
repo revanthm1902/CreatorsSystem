@@ -23,7 +23,11 @@ Creators System is an open-source task management platform built for AryVerse. I
 ### Key Features
 
 - **Role-Based Access Control** - Director, Admin, and User roles with hierarchical permissions
-- **Task Management** - Create, assign, edit, and track tasks with deadlines and token rewards
+- **Department-Based Access & Visibility** - Tasks organized by Departments. Admins can configure granular cross-department viewing permissions.
+- **GitHub Integration** - Link tasks to GitHub issues seamlessly using a Fine-Grained Personal Access Token with webhooks syncing issue states.
+- **Banked Time System** - Users who complete tasks early accumulate "Banked Minutes", which are automatically applied to extend deadlines on future tasks!
+- **Task Management** - Create, assign, edit, and track tasks with deadlines, timeline extensions, and token rewards
+- **Manual Token Allocation** - Give instant token bonuses for exceptional work outside of regular tasks
 - **Director Approval Workflow** - Tasks created by Admins require Director approval before becoming visible to Users
 - **Task Reassignment** - Admins can send submitted tasks back to the user for rework instead of approving/rejecting
 - **Token System** - Points awarded to Users for completing tasks on time (Directors/Admins don't have tokens)
@@ -142,17 +146,21 @@ src/
 │   ├── dashboard/      # Role-specific dashboards, ActivityFeed
 │   ├── layout/         # Sidebar, DashboardLayout
 │   ├── routing/        # ProtectedRoute
-│   └── tasks/          # TaskCard, TaskCountdown, CreateTaskModal
+│   ├── tasks/          # TaskCard, TaskCountdown, CreateTaskModal
+│   └── users/          # CreateUserModal, GiveTokensModal
 ├── lib/
 │   └── supabase.ts     # Supabase client
 ├── pages/
 │   ├── LoginPage.tsx
 │   ├── SetupGuidePage.tsx   # In-app setup instructions
+│   ├── DepartmentTasksPage.tsx
+│   ├── GitHubSettingsPage.tsx
 │   ├── ResetPasswordPage.tsx
 │   ├── ProfileSettingsPage.tsx
 │   ├── LeaderboardPage.tsx
 │   ├── UsersPage.tsx
 │   └── TasksPage.tsx
+├── services/           # Backend data-access services
 ├── stores/             # Zustand state management
 │   ├── authStore.ts
 │   ├── taskStore.ts
@@ -278,13 +286,17 @@ Contributions are what make the open source community amazing! Any contributions
 ### Contribution Ideas
 
 - [ ] Add email notifications for task deadlines
-- [ ] Implement task categories/tags
-- [ ] Add task comments/attachments
-- [x] Mobile-responsive design *(Implemented!)*
-- [x] Add dark/light theme toggle *(Implemented!)*
 - [ ] Implement task analytics dashboard
 - [ ] Add export functionality (CSV/PDF)
 - [ ] Create API documentation
+- [x] Banked Time system for early completions *(Implemented!)*
+- [x] GitHub Issue sync tracking *(Implemented!)*
+- [x] Department-level task grouping and access control *(Implemented!)*
+- [x] Give instant manual token bonuses *(Implemented!)*
+- [x] Add task comments/attachments *(Implemented as Submission Notes)*
+- [x] Implement task categories/tags *(Implemented as Departments)*
+- [x] Mobile-responsive design *(Implemented!)*
+- [x] Add dark/light theme toggle *(Implemented!)*
 - [x] Director approval workflow for admin-created tasks *(Implemented!)*
 - [x] Real-time activity feed with custom announcements *(Implemented!)*
 - [x] Profile settings page *(Implemented!)*
