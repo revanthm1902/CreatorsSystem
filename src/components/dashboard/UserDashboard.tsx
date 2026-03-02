@@ -12,7 +12,7 @@ export function UserDashboard() {
 
   useEffect(() => {
     if (profile) {
-      fetchTasks(profile.id, profile.role);
+      fetchTasks(profile.id, profile.role, true);
       const unsubscribe = subscribeToTasks();
       return () => unsubscribe();
     }

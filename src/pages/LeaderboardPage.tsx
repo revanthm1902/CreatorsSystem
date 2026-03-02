@@ -6,7 +6,7 @@ export function LeaderboardPage() {
   const { leaderboard, fetchLeaderboard } = useUserStore();
 
   useEffect(() => {
-    fetchLeaderboard();
+    fetchLeaderboard(true);
   }, [fetchLeaderboard]);
 
   const getRankIcon = (index: number) => {

@@ -101,6 +101,31 @@ export async function grantDepartmentAccess(
   return { error: null };
 }
 
+/** Grant a department access to view multiple departments at once. */
+export async function grantDepartmentAccessBatch(
+  department: string,
+  canViewDepartments: string[],
+  grantedBy: string,
+): Promise<{ error: string | null }> {
+  if (canViewDepartments.length === 0) return { error: null };
+  logger.info(CAT, 'grantDepartmentAccessBatch', { department, canViewDepartments, grantedBy });
+
+  const rows = canViewDepartments.map((d) => ({
+    department,
+    can_view_department: d,
+    granted_by: grantedBy,
+  }));
+
+  const { error } = await supabase.from('department_access').insert(rows);
+
+  if (error) {
+    logger.error(CAT, 'grantDepartmentAccessBatch failed', { error: error.message });
+    return { error: error.message };
+  }
+
+  return { error: null };
+}
+
 /** Grant a specific user access to view a department's tasks. */
 export async function grantUserDepartmentAccess(
   userId: string,
@@ -119,6 +144,31 @@ export async function grantUserDepartmentAccess(
 
   if (error) {
     logger.error(CAT, 'grantUserDepartmentAccess failed', { error: error.message });
+    return { error: error.message };
+  }
+
+  return { error: null };
+}
+
+/** Grant a specific user access to view multiple departments at once. */
+export async function grantUserDepartmentAccessBatch(
+  userId: string,
+  canViewDepartments: string[],
+  grantedBy: string,
+): Promise<{ error: string | null }> {
+  if (canViewDepartments.length === 0) return { error: null };
+  logger.info(CAT, 'grantUserDepartmentAccessBatch', { userId, canViewDepartments, grantedBy });
+
+  const rows = canViewDepartments.map((d) => ({
+    user_id: userId,
+    can_view_department: d,
+    granted_by: grantedBy,
+  }));
+
+  const { error } = await supabase.from('department_access').insert(rows);
+
+  if (error) {
+    logger.error(CAT, 'grantUserDepartmentAccessBatch failed', { error: error.message });
     return { error: error.message };
   }
 

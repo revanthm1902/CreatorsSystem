@@ -24,8 +24,8 @@ export function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'All'>('All');
 
   useEffect(() => {
-    fetchTasks(undefined, profile?.role);
-    fetchUsers();
+    fetchTasks(undefined, profile?.role, true);
+    fetchUsers(true);
     const unsubscribe = subscribeToTasks();
     return () => unsubscribe();
   }, [fetchTasks, fetchUsers, subscribeToTasks, profile?.role]);
