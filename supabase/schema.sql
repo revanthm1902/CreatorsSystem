@@ -55,6 +55,9 @@ ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS admin_feedback TEXT;
 -- Migration: Add original_deadline column to track deadline extensions
 ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS original_deadline TIMESTAMPTZ;
 
+-- Migration: Add pow_url column for Proof of Work links
+ALTER TABLE public.tasks ADD COLUMN IF NOT EXISTS pow_url TEXT;
+
 -- 3. Create points log table
 CREATE TABLE IF NOT EXISTS public.points_log (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

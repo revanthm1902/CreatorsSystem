@@ -21,12 +21,9 @@ import {
   PanelLeftOpen,
   Menu,
   X,
-  Webhook,
+  Github,
   type LucideIcon,
 } from 'lucide-react';
-
-// ─── Webhook feature gate (env-driven, identity-checked) ────────────────────
-const WEBHOOK_FEATURE_ENABLED = import.meta.env.VITE_WEBHOOK_ENABLED === 'true';
 
 // Brand logo component
 function BrandLogo({ className = "w-11 h-11" }: { className?: string }) {
@@ -51,6 +48,7 @@ const navItemsByRole: Record<UserRole, NavItem[]> = {
     { to: '/tasks', icon: ClipboardList, label: 'Tasks' },
     { to: '/users', icon: Users, label: 'Manage Users' },
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+    { to: '/github-settings', icon: Github, label: 'GitHub' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   Admin: [
@@ -58,6 +56,7 @@ const navItemsByRole: Record<UserRole, NavItem[]> = {
     { to: '/tasks', icon: ClipboardList, label: 'Tasks' },
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+    { to: '/github-settings', icon: Github, label: 'GitHub' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   User: [
@@ -69,12 +68,8 @@ const navItemsByRole: Record<UserRole, NavItem[]> = {
 };
 
 export function Sidebar() {
-  const { profile, signOut, user } = useAuthStore();
+  const { profile, signOut } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
-
-  // Show the Webhooks tab when the env flag is set AND the user is an Admin or Director.
-  const isPrivileged = profile?.role === 'Admin' || profile?.role === 'Director';
-  const showWebhooksTab = WEBHOOK_FEATURE_ENABLED && isPrivileged;
   const isActivityOpen = useActivityStore((s) => s.isPanelOpen);
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -182,39 +177,6 @@ export function Sidebar() {
             )}
           </NavLink>
         ))}
-
-        {/* ── GitHub Webhooks tab (super-admin, env-gated) ─────────────── */}
-        {showWebhooksTab && (
-          <>
-            {/* Subtle divider */}
-            <div
-              className={`my-1 ${collapsed && !mobileOpen ? 'mx-2' : 'mx-1'} border-t`}
-              style={{ borderColor: 'var(--border-color)' }}
-            />
-            <NavLink
-              to="/webhooks"
-              onClick={closeMobileSidebar}
-              className={({ isActive }) =>
-                `nav-item flex items-center ${
-                  collapsed && !mobileOpen ? 'justify-center px-0 py-3' : 'gap-3 px-4 py-3'
-                } rounded-xl transition-all group ${
-                  isActive ? 'bg-primary text-white' : 'hover:bg-(--bg-elevated)'
-                }`
-              }
-              style={({ isActive }) => ({ color: isActive ? undefined : 'var(--text-secondary)' })}
-              title={collapsed && !mobileOpen ? 'GitHub Webhooks' : undefined}
-            >
-              {({ isActive }) => (
-                <>
-                  <Webhook className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? '' : 'group-hover:text-primary'}`} />
-                  {(!collapsed || mobileOpen) && (
-                    <span className="font-medium">GH Webhooks</span>
-                  )}
-                </>
-              )}
-            </NavLink>
-          </>
-        )}
       </nav>
 
       {/* Theme Toggle */}

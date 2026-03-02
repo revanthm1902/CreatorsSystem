@@ -5,20 +5,21 @@
  */
 
 import { useState } from 'react';
-import { Send, X } from 'lucide-react';
+import { Send, X, Link } from 'lucide-react';
 
 interface SubmitTaskModalProps {
   taskTitle: string;
   loading: boolean;
-  onSubmit: (note: string | undefined) => Promise<void>;
+  onSubmit: (note: string | undefined, powUrl?: string) => Promise<void>;
   onClose: () => void;
 }
 
 export function SubmitTaskModal({ taskTitle, loading, onSubmit, onClose }: SubmitTaskModalProps) {
   const [submissionNote, setSubmissionNote] = useState('');
+  const [powUrl, setPowUrl] = useState('');
 
   const handleSubmit = async () => {
-    await onSubmit(submissionNote || undefined);
+    await onSubmit(submissionNote || undefined, powUrl.trim() || undefined);
     setSubmissionNote('');
   };
 
@@ -28,7 +29,7 @@ export function SubmitTaskModal({ taskTitle, loading, onSubmit, onClose }: Submi
       onClick={onClose}
     >
       <div
-        className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto"
+        className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg lg:max-w-2xl max-h-[92vh] overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -58,6 +59,19 @@ export function SubmitTaskModal({ taskTitle, loading, onSubmit, onClose }: Submi
               placeholder="Describe what you did, files changed, links to work, etc..."
               rows={5}
               className="w-full px-4 py-3 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              style={{ backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+              <Link className="w-4 h-4 inline mr-1" />Proof of Work <span style={{ color: 'var(--text-muted)' }}>(optional)</span>
+            </label>
+            <input
+              type="url"
+              value={powUrl}
+              onChange={(e) => setPowUrl(e.target.value)}
+              placeholder="https://link-to-proof.com"
+              className="w-full px-4 py-3 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
               style={{ backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
             />
           </div>

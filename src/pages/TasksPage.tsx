@@ -30,6 +30,7 @@ export function TasksPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'All'>('All');
   const [selectedDept, setSelectedDept] = useState<string | 'All'>('All');
+  const [assignedByFilter, setAssignedByFilter] = useState<string>('All');
 
   // Department tasks for regular users (fetched via departmentService)
   const [deptTasks, setDeptTasks] = useState<(Task & { assignee?: Profile })[]>([]);
@@ -128,10 +129,11 @@ export function TasksPage() {
     });
   }, [approvedTasks, selectedDept, userMap]);
 
-  const filteredTasks =
-    statusFilter === 'All'
-      ? deptFilteredTasks
-      : deptFilteredTasks.filter((t) => t.status === statusFilter);
+  const filteredTasks = useMemo(() => {
+    let result = statusFilter === 'All' ? deptFilteredTasks : deptFilteredTasks.filter((t) => t.status === statusFilter);
+    if (assignedByFilter !== 'All') result = result.filter((t) => t.created_by === assignedByFilter);
+    return result;
+  }, [deptFilteredTasks, statusFilter, assignedByFilter]);
 
   /* ------------------------------------------------------------------ */
   /* Department stats                                                    */
@@ -202,6 +204,12 @@ export function TasksPage() {
 
   const deptRules = accessRules.filter((r) => r.department != null && r.user_id == null);
   const userRules = accessRules.filter((r) => r.user_id != null);
+
+  /* Unique task creators for "Assigned by" filter */
+  const assignerOptions = useMemo(() => {
+    const ids = [...new Set(approvedTasks.map(t => t.created_by))];
+    return ids.map(id => userMap.get(id)).filter(Boolean) as Profile[];
+  }, [approvedTasks, userMap]);
 
   /* ------------------------------------------------------------------ */
   /* Loading state                                                       */
@@ -669,6 +677,14 @@ export function TasksPage() {
             </button>
           ))}
         </div>
+        {isAdmin && assignerOptions.length > 1 && (
+          <select value={assignedByFilter} onChange={e => setAssignedByFilter(e.target.value)}
+            className="ml-auto px-3 py-1.5 rounded-xl text-sm font-medium shrink-0"
+            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
+            <option value="All">All assigners</option>
+            {assignerOptions.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+          </select>
+        )}
       </div>
 
       {/* ============================================================ */}

@@ -31,7 +31,7 @@ interface TaskState {
   fetchTasks: (userId?: string, role?: string, force?: boolean) => Promise<void>;
   createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback' | 'original_deadline'>, creatorRole: string) => Promise<{ error: string | null }>;
   editTask: (taskId: string, updates: { title: string; description: string; deadline: string; tokens: number; assigned_to: string }, actorId: string, actorRole: string) => Promise<{ error: string | null }>;
-  updateTaskStatus: (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string, submissionNote?: string) => Promise<{ error: string | null }>;
+  updateTaskStatus: (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string, submissionNote?: string, powUrl?: string) => Promise<{ error: string | null }>;
   approveTask: (taskId: string, userId: string, tokens: number, deadline: string, actorId: string, bonusTokens?: number) => Promise<{ error: string | null }>;
   rejectTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
   reassignTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
@@ -181,10 +181,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   // -----------------------------------------------------------------------
   // Status update (user submits work)
   // -----------------------------------------------------------------------
-  updateTaskStatus: async (taskId, status, actorId, submittedAt?, submissionNote?) => {
-    const extras: { submitted_at?: string; submission_note?: string } = {};
+  updateTaskStatus: async (taskId, status, actorId, submittedAt?, submissionNote?, powUrl?) => {
+    const extras: { submitted_at?: string; submission_note?: string; pow_url?: string } = {};
     if (submittedAt) extras.submitted_at = submittedAt;
     if (submissionNote !== undefined) extras.submission_note = submissionNote;
+    if (powUrl) extras.pow_url = powUrl;
 
     try {
       const { error } = await taskService.updateTaskStatus(taskId, status, Object.keys(extras).length ? extras : undefined);

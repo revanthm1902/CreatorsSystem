@@ -8,27 +8,10 @@ import { LeaderboardPage } from './pages/LeaderboardPage';
 import { UsersPage } from './pages/UsersPage';
 import { TasksPage } from './pages/TasksPage';
 import { ProfileSettingsPage } from './pages/ProfileSettingsPage';
-import { WebhooksPage } from './pages/WebhooksPage';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { ProtectedRoute } from './components/routing/ProtectedRoute';
-
-// Webhook feature gate (env-driven, identity-checked)
-const WEBHOOK_FEATURE_ENABLED = import.meta.env.VITE_WEBHOOK_ENABLED === 'true';
-
-/**
- * Inner guard rendered at /webhooks.
- * Allows access if VITE_WEBHOOK_ENABLED=true and the signed-in user
- * is an Admin or Director.
- */
-function WebhooksGuard() {
-  const { profile } = useAuthStore();
-  const isPrivileged = profile?.role === 'Admin' || profile?.role === 'Director';
-  if (!WEBHOOK_FEATURE_ENABLED || !isPrivileged) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  return <WebhooksPage />;
-}
+import { GitHubSettingsPage } from './pages/GitHubSettingsPage';
 
 function App() {
   const { initialize, initialized, user, profile } = useAuthStore();
@@ -104,18 +87,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* ── GitHub Webhooks viewer (frank-only, env-gated) ──────────── */}
-          {WEBHOOK_FEATURE_ENABLED && (
-            <Route
-              path="/webhooks"
-              element={
-                <ProtectedRoute>
-                  <WebhooksGuard />
-                </ProtectedRoute>
-              }
-            />
-          )}
+          <Route
+            path="/github-settings"
+            element={
+              <ProtectedRoute allowedRoles={['Director', 'Admin']}>
+                <GitHubSettingsPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* Redirect root to dashboard or login */}

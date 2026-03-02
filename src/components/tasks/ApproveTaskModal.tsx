@@ -47,7 +47,7 @@ export function ApproveTaskModal({
       onClick={onClose}
     >
       <div
-        className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto"
+        className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg lg:max-w-2xl max-h-[92vh] overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         onClick={(e) => e.stopPropagation()}
       >

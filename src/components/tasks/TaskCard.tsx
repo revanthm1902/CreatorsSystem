@@ -59,11 +59,11 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
 
   // ── Action handlers ──────────────────────────────────────────
 
-  const handleSubmit = async (note: string | undefined) => {
+  const handleSubmit = async (note: string | undefined, powUrl?: string) => {
     if (!profile) return;
     setLoading(true);
     try {
-      await updateTaskStatus(task.id, 'Under Review', profile.id, new Date().toISOString(), note);
+      await updateTaskStatus(task.id, 'Under Review', profile.id, new Date().toISOString(), note, powUrl);
       setShowSubmitModal(false);
     } finally {
       setLoading(false);
@@ -275,44 +275,44 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
             {canEdit && (
               <button
                 onClick={() => setShowEditModal(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium border"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-xs font-medium border"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-elevated)' }}
               >
-                <Pencil className="w-4 h-4" />
+                <Pencil className="w-3.5 h-3.5" />
                 <span>Edit</span>
               </button>
             )}
             {canMarkDone && (
               <button
                 onClick={() => setShowSubmitModal(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all disabled:opacity-50 font-medium"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50 text-xs font-medium"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-3.5 h-3.5" />
                 <span>Mark as Done</span>
               </button>
             )}
 
             {canReview && (
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button onClick={() => setShowApproveModal(true)} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-success hover:bg-success/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium">
-                  {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CheckCircle className="w-4 h-4" /><span>Approve</span></>}
+                <button onClick={() => setShowApproveModal(true)} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 bg-success hover:bg-success/90 text-white rounded-lg transition-all disabled:opacity-50 text-xs font-medium">
+                  {loading ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CheckCircle className="w-3.5 h-3.5" /><span>Approve</span></>}
                 </button>
-                <button onClick={handleReassign} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all disabled:opacity-50 font-medium">
-                  <RotateCcw className="w-4 h-4" /><span>Reassign</span>
+                <button onClick={handleReassign} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-all disabled:opacity-50 text-xs font-medium">
+                  <RotateCcw className="w-3.5 h-3.5" /><span>Reassign</span>
                 </button>
-                <button onClick={handleReject} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium">
-                  <XCircle className="w-4 h-4" /><span>Reject</span>
+                <button onClick={handleReject} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 bg-danger hover:bg-danger/90 text-white rounded-lg transition-all disabled:opacity-50 text-xs font-medium">
+                  <XCircle className="w-3.5 h-3.5" /><span>Reject</span>
                 </button>
               </div>
             )}
 
             {canDirectorApprove && (
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button onClick={handleDirectorApprove} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-all disabled:opacity-50 font-medium">
-                  {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><ShieldCheck className="w-4 h-4" /><span>Approve for Users</span></>}
+                <button onClick={handleDirectorApprove} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-all disabled:opacity-50 text-xs font-medium">
+                  {loading ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><ShieldCheck className="w-3.5 h-3.5" /><span>Approve for Users</span></>}
                 </button>
-                <button onClick={handleReject} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-danger hover:bg-danger/90 text-white rounded-xl transition-all disabled:opacity-50 font-medium">
-                  <XCircle className="w-4 h-4" /><span>Reject</span>
+                <button onClick={handleReject} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 bg-danger hover:bg-danger/90 text-white rounded-lg transition-all disabled:opacity-50 text-xs font-medium">
+                  <XCircle className="w-3.5 h-3.5" /><span>Reject</span>
                 </button>
               </div>
             )}
@@ -327,10 +327,10 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
             {canGiveFeedback && (
               <button
                 onClick={() => setShowFeedbackModal(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium border"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-xs font-medium border"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-elevated)' }}
               >
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="w-3.5 h-3.5" />
                 <span>{task.admin_feedback ? 'Edit Feedback' : 'Give Feedback'}</span>
               </button>
             )}
@@ -338,9 +338,9 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
             {canExtendDeadline && (
               <button
                 onClick={() => setShowExtendModal(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border border-amber-500/30"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-xs font-medium bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border border-amber-500/30"
               >
-                <Clock className="w-4 h-4" />
+                <Clock className="w-3.5 h-3.5" />
                 <span>Extend Deadline</span>
               </button>
             )}
@@ -348,9 +348,9 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
             {canDelete && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium bg-danger/10 text-danger hover:bg-danger/20 sm:ml-auto"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-xs font-medium bg-danger/10 text-danger hover:bg-danger/20 sm:ml-auto"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5" />
                 <span>Delete</span>
               </button>
             )}

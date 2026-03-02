@@ -84,7 +84,7 @@ export function EditTaskModal({ onClose, task }: EditTaskModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-      <div className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-y-auto"
+      <div className="rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg lg:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
       >
         <div className="modal-pull-indicator sm:hidden" />

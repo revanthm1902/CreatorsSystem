@@ -1,9 +1,19 @@
-import { Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { ActivityButton, ActivityToast } from '../dashboard/ActivityNotification';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Github, X } from 'lucide-react';
+import { useAuthStore } from '../../stores/authStore';
 
 export function DashboardLayout() {
+  const { profile } = useAuthStore();
+  const navigate = useNavigate();
+  const [ghDismissed, setGhDismissed] = useState(false);
+
+  // Show nudge for technical users who haven't set github_url
+  const showGhNudge = !ghDismissed && profile?.role === 'User'
+    && profile.department !== 'Non-Technical' && !profile.github_url;
+
   const handleHardRefresh = () => {
     // Hard refresh: bypass cache on all platforms
     window.location.reload();
@@ -22,6 +32,22 @@ export function DashboardLayout() {
           <div className="float-right sticky top-4 z-40 ml-4">
             <ActivityButton />
           </div>
+
+          {showGhNudge && (
+            <div className="mb-4 flex items-center gap-3 rounded-xl px-4 py-3 text-sm"
+              style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-color)' }}>
+              <Github className="w-5 h-5 shrink-0" style={{ color: 'var(--text-secondary)' }} />
+              <span style={{ color: 'var(--text-secondary)' }}>
+                Add your GitHub profile in{' '}
+                <button onClick={() => navigate('/settings')} className="underline font-medium" style={{ color: 'var(--color-primary)' }}>Settings</button>
+                {' '}so admins can auto-assign tasks to you.
+              </span>
+              <button onClick={() => setGhDismissed(true)} className="ml-auto p-1 rounded hover:bg-primary/10 shrink-0" style={{ color: 'var(--text-muted)' }}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           <Outlet />
         </div>
       </main>
