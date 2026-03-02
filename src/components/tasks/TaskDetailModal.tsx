@@ -18,6 +18,7 @@ import {
   FileText,
   ExternalLink,
 } from 'lucide-react';
+import { GHIssueBadge } from './GHIssueBadge';
 
 interface TaskDetailModalProps {
   task: Task;
@@ -224,7 +225,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             </div>
           )}
 
-          {/* Proof of Work */}
           {task.pow_url && (
             <div className="flex items-center gap-2 text-sm">
               <ExternalLink className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
@@ -233,6 +233,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 className="underline truncate" style={{ color: 'var(--color-primary)' }}>
                 {task.pow_url}
               </a>
+              <GHIssueBadge url={task.pow_url} />
             </div>
           )}
 

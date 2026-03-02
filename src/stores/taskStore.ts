@@ -40,6 +40,7 @@ interface TaskState {
   addFeedback: (taskId: string, feedback: string) => Promise<{ error: string | null }>;
   extendDeadline: (taskId: string, newDeadline: string, actorId: string) => Promise<{ error: string | null }>;
   deleteTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
+  linkPowUrl: (taskId: string, url: string) => Promise<{ error: string | null }>;
   subscribeToTasks: () => () => void;
   reset: () => void;
 }
@@ -547,6 +548,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       logger.error(CAT, 'extendDeadline exception', { error: message });
       return { error: message };
     }
+  },
+
+  // -----------------------------------------------------------------------
+  // Link pow_url to existing task
+  // -----------------------------------------------------------------------
+  linkPowUrl: async (taskId, url) => {
+    const val = url || null;
+    const { error } = await taskService.updateTask(taskId, { pow_url: val });
+    if (error) return { error };
+    set(s => ({ tasks: s.tasks.map(t => t.id === taskId ? { ...t, pow_url: val } : t) }));
+    return { error: null };
   },
 
   // -----------------------------------------------------------------------

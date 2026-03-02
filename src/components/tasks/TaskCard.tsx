@@ -17,6 +17,7 @@ import { ApproveTaskModal } from './ApproveTaskModal';
 import { DeleteTaskConfirm } from './DeleteTaskConfirm';
 import { EditTaskModal } from './EditTaskModal';
 import { ExtendDeadlineModal } from './ExtendDeadlineModal';
+import { GHIssueBadge, LinkIssueButton } from './GHIssueBadge';
 import { useTaskStore } from '../../stores/taskStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useUserStore } from '../../stores/userStore';
@@ -34,6 +35,7 @@ import {
   RotateCcw,
   User,
 } from 'lucide-react';
+import { loadGHSettings } from '../../lib/githubSettings';
 
 interface TaskCardProps {
   task: Task;
@@ -54,6 +56,9 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
   const { updateTaskStatus, approveTask, rejectTask, reassignTask, approveTaskByDirector, addFeedback, deleteTask, extendDeadline } = useTaskStore();
   const { profile } = useAuthStore();
   const { users } = useUserStore();
+  const gh = loadGHSettings();
+  const ghActive = gh.enabled && !!gh.token;
+  const isGHIssue = !!task.pow_url?.match(/github\.com\/[^/]+\/[^/]+\/issues\/\d+/);
 
   const assignedUser = users.find((u) => u.id === task.assigned_to);
 
@@ -156,7 +161,13 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
   const canDelete = profile?.role === 'Admin' || profile?.role === 'Director';
   const canExtendDeadline = (profile?.role === 'Admin' || profile?.role === 'Director') && task.status === 'Pending';
   const canGiveFeedback = (profile?.role === 'Admin' || profile?.role === 'Director') && (task.status === 'Completed' || task.status === 'Rejected' || task.status === 'Under Review');
+  const canLinkIssue = ghActive && (profile?.role === 'Admin' || profile?.role === 'Director') && task.status === 'Completed';
   const isDeadlineExtended = !!task.original_deadline;
+  const isForeignTask = profile && task.created_by !== profile.id;
+  const foreignCreatorName = isForeignTask ? (users.find(u => u.id === task.created_by)?.full_name || 'another admin') : '';
+
+  const confirmForeignTask = (action: string) =>
+    !isForeignTask || window.confirm(`This task was assigned by ${foreignCreatorName}. ${action} anyway?`);
 
   const handleCardClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
@@ -190,6 +201,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
                 </span>
               )}
               <TaskStatusBadge status={task.status} />
+              {isGHIssue && <GHIssueBadge url={task.pow_url!} />}
             </div>
           </div>
         </div>
@@ -267,7 +279,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
         </div>
 
         {/* Actions */}
-        {showActions && (canMarkDone || canReview || canDirectorApprove || isPendingDirectorApproval || canEdit || canExtendDeadline || canDelete || canGiveFeedback) && (
+        {showActions && (canMarkDone || canReview || canDirectorApprove || isPendingDirectorApproval || canEdit || canExtendDeadline || canDelete || canGiveFeedback || canLinkIssue) && (
           <div
             className="px-4 sm:px-5 py-3 sm:py-4 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3"
             style={{ borderTop: '1px solid var(--border-color)' }}
@@ -294,7 +306,7 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
 
             {canReview && (
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button onClick={() => setShowApproveModal(true)} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 bg-success hover:bg-success/90 text-white rounded-lg transition-all disabled:opacity-50 text-xs font-medium">
+                <button onClick={() => confirmForeignTask('Approve') && setShowApproveModal(true)} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 bg-success hover:bg-success/90 text-white rounded-lg transition-all disabled:opacity-50 text-xs font-medium">
                   {loading ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><CheckCircle className="w-3.5 h-3.5" /><span>Approve</span></>}
                 </button>
                 <button onClick={handleReassign} disabled={loading} className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-all disabled:opacity-50 text-xs font-medium">
@@ -335,9 +347,17 @@ export function TaskCard({ task, showActions = true, isAdminView = false }: Task
               </button>
             )}
 
+            {canLinkIssue && (
+              <LinkIssueButton
+                currentUrl={task.pow_url}
+                onSave={async url => { await useTaskStore.getState().linkPowUrl(task.id, url); }}
+                onUnlink={task.pow_url ? async () => { await useTaskStore.getState().linkPowUrl(task.id, ''); } : undefined}
+              />
+            )}
+
             {canExtendDeadline && (
               <button
-                onClick={() => setShowExtendModal(true)}
+                onClick={() => confirmForeignTask('Extend deadline') && setShowExtendModal(true)}
                 className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-xs font-medium bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border border-amber-500/30"
               >
                 <Clock className="w-3.5 h-3.5" />
