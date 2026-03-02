@@ -1,4 +1,3 @@
-// @ts-nocheck — Deno runtime file; Node/tsc type errors here are false positives.
 // This function runs on Supabase's Deno edge runtime, not Node.js.
 // Install the "Deno" VS Code extension for proper intellisense.
 
@@ -58,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
   const webhookSecret = Deno.env.get('WEBHOOK_SECRET');
   const supabaseUrl   = Deno.env.get('SUPABASE_URL');
-  const serviceKey    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const serviceKey    = Deno.env.get('SERVICE_ROLE_KEY');
 
   if (!webhookSecret || !supabaseUrl || !serviceKey) {
     console.error('[github-webhook] Missing env vars');
