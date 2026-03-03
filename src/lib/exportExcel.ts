@@ -4,8 +4,7 @@
  * Called from Director / Admin dashboards.
  */
 
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -27,20 +26,14 @@ function bool(v: boolean | null | undefined): string {
 }
 
 function styledSheet(
-  wb: ExcelJS.Workbook,
+  wb: XLSX.WorkBook,
   name: string,
   rows: Record<string, unknown>[],
   colWidths: number[],
 ) {
-  const ws = wb.addWorksheet(name);
-  if (!rows || rows.length === 0) return;
-
-  // derive headers from first row
-  const headers = Object.keys(rows[0]);
-  ws.columns = headers.map((h, i) => ({ header: h, key: h, width: colWidths[i] ?? 15 }));
-
-  // add rows (ExcelJS accepts array of objects keyed by column keys)
-  ws.addRows(rows);
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = colWidths.map((w) => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws, name);
 }
 
 // ─── tasks-only export ────────────────────────────────────────────────────────
@@ -250,7 +243,7 @@ export async function exportToExcel(): Promise<void> {
     ]);
 
   // ── 2. Build workbook ───────────────────────────────────────────────────────
-  const wb = new ExcelJS.Workbook();
+  const wb = XLSX.utils.book_new();
   const generated = new Date().toLocaleString('en-IN', { hour12: false });
 
   // ── Overview ────────────────────────────────────────────────────────────────
@@ -422,8 +415,5 @@ export async function exportToExcel(): Promise<void> {
   const datestamp = new Date().toISOString().slice(0, 10);
   const filename = `CreatorsSystem_Export_${datestamp}.xlsx`;
 
-  // write workbook to buffer and trigger download in browser
-  const buf = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  saveAs(blob, filename);
+  XLSX.writeFile(wb, filename);
 }

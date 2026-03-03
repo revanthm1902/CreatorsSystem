@@ -1,1 +1,8 @@
-{}
+{
+  // Prevent the TypeScript language server from watching / discovering
+  // tsconfig.json files inside node_modules (e.g. xlsx/types/tsconfig.json).
+  // This stops false-positive deprecation errors from third-party packages.
+  "typescript.tsserver.watchOptions": {
+    "excludeDirectories": ["**/node_modules", "**/.git"]
+  }
+}
