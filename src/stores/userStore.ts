@@ -187,11 +187,18 @@ export const useUserStore = create<UserState>((set, get) => ({
   deleteUser: async (userId) => {
     logger.info(CAT, 'deleteUser', { userId });
 
-    const { error } = await userServiceMod.deleteUser(userId);
-    if (error) return { error };
+    try {
+      const { error } = await userServiceMod.deleteUser(userId);
+      if (error) return { error };
 
-    set((s) => ({ users: s.users.filter((u) => u.id !== userId) }));
-    return { error: null };
+      set((s) => ({ users: s.users.filter((u) => u.id !== userId) }));
+      logger.info(CAT, 'deleteUser — state updated', { userId });
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'deleteUser exception', { userId, error: message });
+      return { error: message };
+    }
   },
 
   // -----------------------------------------------------------------------
@@ -200,57 +207,80 @@ export const useUserStore = create<UserState>((set, get) => ({
   updateUserDepartment: async (userId, department) => {
     logger.info(CAT, 'updateUserDepartment', { userId, department });
 
-    const { error } = await profileService.updateProfile(userId, { department: department as any });
-    if (error) return { error };
+    try {
+      const { error } = await profileService.updateProfile(userId, { department: department as any });
+      if (error) return { error };
 
-    set((s) => ({
-      users: s.users.map((u) =>
-        u.id === userId ? { ...u, department: department as any } : u,
-      ),
-    }));
+      set((s) => ({
+        users: s.users.map((u) =>
+          u.id === userId ? { ...u, department: department as any } : u,
+        ),
+      }));
 
-    return { error: null };
+      logger.info(CAT, 'updateUserDepartment — state updated', { userId, department });
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'updateUserDepartment exception', { userId, error: message });
+      return { error: message };
+    }
   },
 
   // -----------------------------------------------------------------------
   // Password-reset requests
   // -----------------------------------------------------------------------
   fetchPasswordResetRequests: async () => {
-    const { data } = await userServiceMod.fetchPendingPasswordResets();
-    if (data) {
-      set({ passwordResetRequests: data });
+    try {
+      const { data } = await userServiceMod.fetchPendingPasswordResets();
+      if (data) {
+        set({ passwordResetRequests: data });
+      }
+    } catch (err) {
+      logger.error(CAT, 'fetchPasswordResetRequests exception', { error: String(err) });
     }
   },
 
   resetUserPassword: async (userId, newPassword, requestId, actorId, actorName, userEmail) => {
     logger.info(CAT, 'resetUserPassword', { userId, requestId });
 
-    const { error } = await userServiceMod.resetUserPassword(userId, newPassword, requestId, actorId);
-    if (error) return { error };
+    try {
+      const { error } = await userServiceMod.resetUserPassword(userId, newPassword, requestId, actorId);
+      if (error) return { error };
 
-    activityService.insertActivity({
-      actor_id: actorId,
-      action_type: 'password_reset_request',
-      target_user_id: userId,
-      task_id: null,
-      message: `${actorName} reset password for ${userEmail}`,
-    }).catch(() => {});
+      activityService.insertActivity({
+        actor_id: actorId,
+        action_type: 'password_reset_request',
+        target_user_id: userId,
+        task_id: null,
+        message: `${actorName} reset password for ${userEmail}`,
+      }).catch(() => {});
 
-    await get().fetchPasswordResetRequests();
-    await get().fetchUsers(true);
+      await get().fetchPasswordResetRequests();
+      await get().fetchUsers(true);
 
-    return { error: null };
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'resetUserPassword exception', { userId, error: message });
+      return { error: message };
+    }
   },
 
   dismissPasswordResetRequest: async (requestId) => {
-    const { error } = await userServiceMod.dismissPasswordResetRequest(requestId);
-    if (error) return { error };
+    try {
+      const { error } = await userServiceMod.dismissPasswordResetRequest(requestId);
+      if (error) return { error };
 
-    set((s) => ({
-      passwordResetRequests: s.passwordResetRequests.filter((r) => r.id !== requestId),
-    }));
+      set((s) => ({
+        passwordResetRequests: s.passwordResetRequests.filter((r) => r.id !== requestId),
+      }));
 
-    return { error: null };
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'dismissPasswordResetRequest exception', { error: message });
+      return { error: message };
+    }
   },
 
   // -----------------------------------------------------------------------

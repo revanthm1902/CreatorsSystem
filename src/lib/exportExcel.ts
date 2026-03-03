@@ -4,7 +4,8 @@
  * Called from Director / Admin dashboards.
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { supabase } from './supabase';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -26,15 +27,20 @@ function bool(v: boolean | null | undefined): string {
 }
 
 function styledSheet(
-  wb: XLSX.WorkBook,
+  wb: ExcelJS.Workbook,
   name: string,
   rows: Record<string, unknown>[],
   colWidths: number[],
 ) {
-  const ws = XLSX.utils.json_to_sheet(rows);
-  // column widths
-  ws['!cols'] = colWidths.map((w) => ({ wch: w }));
-  XLSX.utils.book_append_sheet(wb, ws, name);
+  const ws = wb.addWorksheet(name);
+  if (!rows || rows.length === 0) return;
+
+  // derive headers from first row
+  const headers = Object.keys(rows[0]);
+  ws.columns = headers.map((h, i) => ({ header: h, key: h, width: colWidths[i] ?? 15 }));
+
+  // add rows (ExcelJS accepts array of objects keyed by column keys)
+  ws.addRows(rows);
 }
 
 // ─── tasks-only export ────────────────────────────────────────────────────────
@@ -244,7 +250,7 @@ export async function exportToExcel(): Promise<void> {
     ]);
 
   // ── 2. Build workbook ───────────────────────────────────────────────────────
-  const wb = XLSX.utils.book_new();
+  const wb = new ExcelJS.Workbook();
   const generated = new Date().toLocaleString('en-IN', { hour12: false });
 
   // ── Overview ────────────────────────────────────────────────────────────────
@@ -414,5 +420,10 @@ export async function exportToExcel(): Promise<void> {
 
   // ── 3. Download ───────────────────────────────────────────────────────────────
   const datestamp = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `CreatorsSystem_Export_${datestamp}.xlsx`);
+  const filename = `CreatorsSystem_Export_${datestamp}.xlsx`;
+
+  // write workbook to buffer and trigger download in browser
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  saveAs(blob, filename);
 }

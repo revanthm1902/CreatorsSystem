@@ -24,21 +24,27 @@ export async function fetchTasks(
 ): Promise<{ data: Task[] | null; error: string | null }> {
   logger.info(CAT, 'fetchTasks', { userId, role });
 
-  let query = supabase.from('tasks').select('*');
+  try {
+    let query = supabase.from('tasks').select('*');
 
-  if (role === 'User' && userId) {
-    query = query.eq('assigned_to', userId).eq('director_approved', true);
+    if (role === 'User' && userId) {
+      query = query.eq('assigned_to', userId).eq('director_approved', true);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error(CAT, 'fetchTasks failed', { error: error.message });
+      return { data: null, error: error.message };
+    }
+
+    logger.debug(CAT, `fetchTasks returned ${data?.length ?? 0} rows`);
+    return { data, error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(CAT, 'fetchTasks exception', { error: message });
+    return { data: null, error: message };
   }
-
-  const { data, error } = await query.order('created_at', { ascending: false });
-
-  if (error) {
-    logger.error(CAT, 'fetchTasks failed', { error: error.message });
-    return { data: null, error: error.message };
-  }
-
-  logger.debug(CAT, `fetchTasks returned ${data?.length ?? 0} rows`);
-  return { data, error: null };
 }
 
 /** Insert a new task. Returns the created row. */
@@ -134,14 +140,21 @@ export async function updateTask(
 ): Promise<{ error: string | null }> {
   logger.info(CAT, 'updateTask', { taskId, fields: Object.keys(fields) });
 
-  const { error } = await supabase.from('tasks').update(fields).eq('id', taskId);
+  try {
+    const { error } = await supabase.from('tasks').update(fields).eq('id', taskId);
 
-  if (error) {
-    logger.error(CAT, 'updateTask failed', { taskId, error: error.message });
-    return { error: error.message };
+    if (error) {
+      logger.error(CAT, 'updateTask failed', { taskId, error: error.message });
+      return { error: error.message };
+    }
+
+    logger.debug(CAT, 'updateTask succeeded', { taskId });
+    return { error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(CAT, 'updateTask exception', { taskId, error: message });
+    return { error: message };
   }
-
-  return { error: null };
 }
 
 /** Update only the status (and optionally submitted_at / submission_note). */
@@ -152,33 +165,46 @@ export async function updateTaskStatus(
 ): Promise<{ error: string | null }> {
   logger.info(CAT, 'updateTaskStatus', { taskId, status });
 
-  const updateData: Partial<Task> = { status, ...extras };
+  try {
+    const updateData: Partial<Task> = { status, ...extras };
 
-  const { error } = await supabase.from('tasks').update(updateData).eq('id', taskId);
+    const { error } = await supabase.from('tasks').update(updateData).eq('id', taskId);
 
-  if (error) {
-    logger.error(CAT, 'updateTaskStatus failed', { taskId, error: error.message });
-    return { error: error.message };
+    if (error) {
+      logger.error(CAT, 'updateTaskStatus failed', { taskId, error: error.message });
+      return { error: error.message };
+    }
+
+    logger.debug(CAT, 'updateTaskStatus succeeded', { taskId, status });
+    return { error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(CAT, 'updateTaskStatus exception', { taskId, error: message });
+    return { error: message };
   }
-
-  return { error: null };
 }
 
 /** Mark a task as director-approved. */
 export async function approveTaskByDirector(taskId: string): Promise<{ error: string | null }> {
   logger.info(CAT, 'approveTaskByDirector', { taskId });
 
-  const { error } = await supabase
-    .from('tasks')
-    .update({ director_approved: true })
-    .eq('id', taskId);
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ director_approved: true })
+      .eq('id', taskId);
 
-  if (error) {
-    logger.error(CAT, 'approveTaskByDirector failed', { taskId, error: error.message });
-    return { error: error.message };
+    if (error) {
+      logger.error(CAT, 'approveTaskByDirector failed', { taskId, error: error.message });
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(CAT, 'approveTaskByDirector exception', { taskId, error: message });
+    return { error: message };
   }
-
-  return { error: null };
 }
 
 /** Mark a task as Completed with an approval timestamp. */
@@ -188,39 +214,51 @@ export async function completeTask(
 ): Promise<{ error: string | null }> {
   logger.info(CAT, 'completeTask', { taskId });
 
-  const { error } = await supabase
-    .from('tasks')
-    .update({ status: 'Completed' as TaskStatus, approved_at: approvedAt })
-    .eq('id', taskId);
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: 'Completed' as TaskStatus, approved_at: approvedAt })
+      .eq('id', taskId);
 
-  if (error) {
-    logger.error(CAT, 'completeTask failed', { taskId, error: error.message });
-    return { error: error.message };
+    if (error) {
+      logger.error(CAT, 'completeTask failed', { taskId, error: error.message });
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(CAT, 'completeTask exception', { taskId, error: message });
+    return { error: message };
   }
-
-  return { error: null };
 }
 
 /** Reset a task back to Pending (for reassignment). */
 export async function resetTaskToPending(taskId: string): Promise<{ error: string | null }> {
   logger.info(CAT, 'resetTaskToPending', { taskId });
 
-  const { error } = await supabase
-    .from('tasks')
-    .update({
-      status: 'Pending' as TaskStatus,
-      submitted_at: null,
-      submission_note: null,
-      approved_at: null,
-    })
-    .eq('id', taskId);
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .update({
+        status: 'Pending' as TaskStatus,
+        submitted_at: null,
+        submission_note: null,
+        approved_at: null,
+      })
+      .eq('id', taskId);
 
-  if (error) {
-    logger.error(CAT, 'resetTaskToPending failed', { taskId, error: error.message });
-    return { error: error.message };
+    if (error) {
+      logger.error(CAT, 'resetTaskToPending failed', { taskId, error: error.message });
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(CAT, 'resetTaskToPending exception', { taskId, error: message });
+    return { error: message };
   }
-
-  return { error: null };
 }
 
 /** Update admin feedback on a task. */
@@ -230,31 +268,43 @@ export async function setTaskFeedback(
 ): Promise<{ error: string | null }> {
   logger.info(CAT, 'setTaskFeedback', { taskId });
 
-  const { error } = await supabase
-    .from('tasks')
-    .update({ admin_feedback: feedback })
-    .eq('id', taskId);
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ admin_feedback: feedback })
+      .eq('id', taskId);
 
-  if (error) {
-    logger.error(CAT, 'setTaskFeedback failed', { taskId, error: error.message });
-    return { error: error.message };
+    if (error) {
+      logger.error(CAT, 'setTaskFeedback failed', { taskId, error: error.message });
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(CAT, 'setTaskFeedback exception', { taskId, error: message });
+    return { error: message };
   }
-
-  return { error: null };
 }
 
 /** Delete a task by ID. */
 export async function deleteTaskById(taskId: string): Promise<{ error: string | null }> {
   logger.info(CAT, 'deleteTaskById', { taskId });
 
-  const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+  try {
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId);
 
-  if (error) {
-    logger.error(CAT, 'deleteTaskById failed', { taskId, error: error.message });
-    return { error: error.message };
+    if (error) {
+      logger.error(CAT, 'deleteTaskById failed', { taskId, error: error.message });
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(CAT, 'deleteTaskById exception', { taskId, error: message });
+    return { error: message };
   }
-
-  return { error: null };
 }
 
 /** Extend the deadline of a task, saving the original if not already saved. */
@@ -266,26 +316,32 @@ export async function extendDeadline(
 ): Promise<{ error: string | null }> {
   logger.info(CAT, 'extendDeadline', { taskId, newDeadline });
 
-  const updates: Record<string, unknown> = {
-    deadline: newDeadline,
-  };
+  try {
+    const updates: Record<string, unknown> = {
+      deadline: newDeadline,
+    };
 
-  // Keep the first original deadline — don't overwrite on subsequent extensions
-  if (!originalDeadline) {
-    updates.original_deadline = currentDeadline;
+    // Keep the first original deadline — don't overwrite on subsequent extensions
+    if (!originalDeadline) {
+      updates.original_deadline = currentDeadline;
+    }
+
+    const { error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', taskId);
+
+    if (error) {
+      logger.error(CAT, 'extendDeadline failed', { taskId, error: error.message });
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(CAT, 'extendDeadline exception', { taskId, error: message });
+    return { error: message };
   }
-
-  const { error } = await supabase
-    .from('tasks')
-    .update(updates)
-    .eq('id', taskId);
-
-  if (error) {
-    logger.error(CAT, 'extendDeadline failed', { taskId, error: error.message });
-    return { error: error.message };
-  }
-
-  return { error: null };
 }
 
 /** Subscribe to all changes on the tasks table. Returns unsubscribe. */
