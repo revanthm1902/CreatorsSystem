@@ -37,7 +37,153 @@ function styledSheet(
   XLSX.utils.book_append_sheet(wb, ws, name);
 }
 
-// ─── main export ──────────────────────────────────────────────────────────────
+// ─── tasks-only export ────────────────────────────────────────────────────────
+
+export async function exportTasksData(): Promise<void> {
+  const [tasksRes, pointsRes, activityRes] = await Promise.all([
+    supabase
+      .from('tasks')
+      .select(`
+        id, title, description, status, tokens, director_approved,
+        deadline, original_deadline, submitted_at, approved_at,
+        submission_note, admin_feedback, pow_url, issue_state, created_at, updated_at,
+        creator:created_by(full_name, employee_id, role),
+        assignee:assigned_to(full_name, employee_id, department)
+      `)
+      .order('created_at', { ascending: false }),
+
+    supabase
+      .from('points_log')
+      .select(`
+        tokens_awarded, reason, created_at,
+        user:user_id(full_name, employee_id),
+        task:task_id(title)
+      `)
+      .order('created_at', { ascending: false }),
+
+    supabase
+      .from('activity_log')
+      .select(`
+        action_type, message, created_at,
+        actor:actor_id(full_name, role),
+        target:target_user_id(full_name),
+        task:task_id(title)
+      `)
+      .in('action_type', [
+        'task_assigned', 'task_marked_done', 'task_approved',
+        'task_rejected', 'task_reassigned', 'director_approved_task', 'task_deleted',
+      ])
+      .order('created_at', { ascending: false }),
+  ]);
+
+  const wb = XLSX.utils.book_new();
+  const tasks   = tasksRes.data ?? [];
+  const points  = pointsRes.data ?? [];
+  const activity = activityRes.data ?? [];
+  const datestamp = new Date().toISOString().slice(0, 10);
+
+  // ── Sheet 1: Full Task Details ──────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  styledSheet(wb, '📋 Tasks', tasks.map((t: any) => ({
+    'Title':             t.title,
+    'Description':       t.description ?? '',
+    'Status':            t.status,
+    'Assigned To':       t.assignee?.full_name ?? '',
+    'Assignee Emp ID':   t.assignee?.employee_id ?? '',
+    'Assignee Dept':     t.assignee?.department ?? '',
+    'Assigned By':       t.creator?.full_name ?? '',
+    'Assigner Role':     t.creator?.role ?? '',
+    'Assigner Emp ID':   t.creator?.employee_id ?? '',
+    'Tokens (Reward)':   t.tokens,
+    'Dir. Approved':     bool(t.director_approved),
+    'Deadline':          fmt(t.deadline),
+    'Original Deadline': fmt(t.original_deadline),
+    'Deadline Extended': t.original_deadline ? 'Yes' : 'No',
+    'Submitted At':      fmt(t.submitted_at),
+    'Approved At':       fmt(t.approved_at),
+    'Time to Submit':    (() => {
+      if (!t.submitted_at || !t.created_at) return '';
+      const ms = new Date(t.submitted_at).getTime() - new Date(t.created_at).getTime();
+      const h = Math.floor(ms / 3600000);
+      const m = Math.floor((ms % 3600000) / 60000);
+      return `${h}h ${m}m`;
+    })(),
+    'On Time':           (() => {
+      if (!t.submitted_at || !t.deadline) return '';
+      return new Date(t.submitted_at) <= new Date(t.deadline) ? 'Yes' : 'No';
+    })(),
+    'Submission Note':   t.submission_note ?? '',
+    'Admin Feedback':    t.admin_feedback ?? '',
+    'GitHub Issue URL':  t.pow_url ?? '',
+    'GitHub Issue State':t.issue_state ?? '',
+    'Task ID':           t.id,
+    'Created At':        fmt(t.created_at),
+  })), [36, 60, 14, 26, 14, 22, 22, 12, 14, 14, 14, 18, 18, 16, 18, 18, 14, 10, 60, 60, 46, 14, 36, 18]);
+
+  // ── Sheet 2: Status Summary ─────────────────────────────────────────────────
+  const statusGroups: Record<string, number> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tasks.forEach((t: any) => { statusGroups[t.status] = (statusGroups[t.status] ?? 0) + 1; });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const assigneeStats: Record<string, any> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tasks.forEach((t: any) => {
+    const key = t.assignee?.full_name ?? 'Unassigned';
+    if (!assigneeStats[key]) assigneeStats[key] = { name: key, empId: t.assignee?.employee_id ?? '', dept: t.assignee?.department ?? '', total: 0, completed: 0, pending: 0, rejected: 0, review: 0, tokens: 0 };
+    assigneeStats[key].total++;
+    if (t.status === 'Completed') { assigneeStats[key].completed++; assigneeStats[key].tokens += t.tokens ?? 0; }
+    if (t.status === 'Pending') assigneeStats[key].pending++;
+    if (t.status === 'Rejected') assigneeStats[key].rejected++;
+    if (t.status === 'Under Review') assigneeStats[key].review++;
+  });
+  styledSheet(wb, '📊 Per-User Summary', Object.values(assigneeStats).sort((a, b) => b.completed - a.completed).map((s) => ({
+    'Name':             s.name,
+    'Emp ID':           s.empId,
+    'Department':       s.dept,
+    'Total Tasks':      s.total,
+    'Completed':        s.completed,
+    'Pending':          s.pending,
+    'Under Review':     s.review,
+    'Rejected':         s.rejected,
+    'Tokens Earned':    s.tokens,
+    'Completion Rate':  s.total ? `${Math.round((s.completed / s.total) * 100)}%` : '0%',
+  })), [26, 14, 22, 12, 12, 10, 14, 10, 14, 16]);
+
+  styledSheet(wb, '📈 Status Breakdown', [
+    { 'Status': 'Total Tasks', 'Count': tasks.length },
+    ...Object.entries(statusGroups).map(([status, count]) => ({ 'Status': status, 'Count': count })),
+    { 'Status': 'GitHub-Linked', 'Count': tasks.filter((t: any) => t.pow_url).length },
+    { 'Status': 'Extended Deadlines', 'Count': tasks.filter((t: any) => t.original_deadline).length },
+    { 'Status': 'On-Time Completions', 'Count': tasks.filter((t: any) => t.submitted_at && t.deadline && new Date(t.submitted_at) <= new Date(t.deadline)).length },
+  ], [26, 12]);
+
+  // ── Sheet 3: Token Awards ───────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  styledSheet(wb, '💰 Token Awards', points.map((p: any) => ({
+    'Emp ID':         p.user?.employee_id ?? '',
+    'Name':           p.user?.full_name ?? '',
+    'Task':           p.task?.title ?? '',
+    'Tokens Awarded': p.tokens_awarded,
+    'Reason':         p.reason ?? '',
+    'Awarded At':     fmt(p.created_at),
+  })), [14, 28, 40, 15, 44, 20]);
+
+  // ── Sheet 4: Task Activity Timeline ────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  styledSheet(wb, '📜 Task Activity', activity.map((a: any) => ({
+    'Timestamp':   fmt(a.created_at),
+    'Actor':       a.actor?.full_name ?? '',
+    'Actor Role':  a.actor?.role ?? '',
+    'Target User': a.target?.full_name ?? '',
+    'Task':        a.task?.title ?? '',
+    'Action':      a.action_type,
+    'Message':     a.message ?? '',
+  })), [18, 26, 12, 26, 36, 26, 80]);
+
+  XLSX.writeFile(wb, `CreatorsSystem_Tasks_${datestamp}.xlsx`);
+}
+
+// ─── full export ──────────────────────────────────────────────────────────────
 
 export async function exportToExcel(): Promise<void> {
   // ── 1. Fetch all tables in parallel ────────────────────────────────────────
