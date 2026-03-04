@@ -15,9 +15,6 @@ import { logger } from '../lib/logger';
 const CAT = 'activityStore';
 const LAST_READ_KEY = 'activity_last_read_at';
 
-// ---------------------------------------------------------------------------
-// localStorage helpers (extracted for clarity)
-// ---------------------------------------------------------------------------
 function getLastReadAt(): string | null {
   try {
     return localStorage.getItem(LAST_READ_KEY);
@@ -34,9 +31,6 @@ function setLastReadAt(timestamp: string) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Store
-// ---------------------------------------------------------------------------
 interface ActivityState {
   activities: ActivityLog[];
   loading: boolean;

@@ -18,10 +18,6 @@ import type { PasswordResetRequest } from '../types/database';
 
 const CAT = 'userService';
 
-// ---------------------------------------------------------------------------
-// User creation (two-step: signUp + profile setup)
-// ---------------------------------------------------------------------------
-
 export interface CreateUserResult {
   userId: string;
   employeeId: string;
@@ -159,10 +155,6 @@ export async function deleteUser(userId: string): Promise<{ error: string | null
     return { error: message };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Password-reset requests
-// ---------------------------------------------------------------------------
 
 /** Fetch all pending password-reset requests. */
 export async function fetchPendingPasswordResets(): Promise<{

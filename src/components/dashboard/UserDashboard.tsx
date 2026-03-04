@@ -5,6 +5,7 @@ import { TaskCard } from '../tasks/TaskCard';
 import { StatCard } from '../ui/StatCard';
 
 import { ClipboardList, Zap, CheckCircle, Clock, Timer } from 'lucide-react';
+import { ExportDropdown } from '../ui/ExportDropdown';
 
 export function UserDashboard() {
   const { profile } = useAuthStore();
@@ -50,6 +51,7 @@ export function UserDashboard() {
             <span className="text-xs sm:text-sm opacity-70">Banked</span>
           </div>
         )}
+        <ExportDropdown />
       </div>
 
       {/* Stats */}

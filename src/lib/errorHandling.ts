@@ -8,9 +8,6 @@
 
 import { logger } from './logger';
 
-// ---------------------------------------------------------------------------
-// Retry helper
-// ---------------------------------------------------------------------------
 export async function retryQuery<T>(
   fn: () => PromiseLike<{ data: T | null; error: { message: string; code?: string } | null }>,
   {
@@ -54,9 +51,6 @@ export async function retryQuery<T>(
   return { data: null, error: { message: 'Query failed after retries' } };
 }
 
-// ---------------------------------------------------------------------------
-// Transient-error detection
-// ---------------------------------------------------------------------------
 export function isTransientError(message: string): boolean {
   const lower = (message ?? '').toLowerCase();
   return (
@@ -70,9 +64,6 @@ export function isTransientError(message: string): boolean {
   );
 }
 
-// ---------------------------------------------------------------------------
-// User-friendly error mapping
-// ---------------------------------------------------------------------------
 export function friendlyError(msg: string): string {
   const lower = msg.toLowerCase();
 
@@ -102,9 +93,6 @@ export function friendlyError(msg: string): string {
   return msg;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

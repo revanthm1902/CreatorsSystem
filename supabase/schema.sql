@@ -646,3 +646,40 @@ CREATE OR REPLACE FUNCTION public.increment_banked_minutes(p_user_id UUID, p_min
 RETURNS void LANGUAGE sql SECURITY DEFINER AS $$
   UPDATE public.profiles SET banked_minutes = banked_minutes + p_minutes WHERE id = p_user_id;
 $$;
+
+-- ========================================================================
+-- 24. Export access control
+-- ========================================================================
+
+CREATE TABLE IF NOT EXISTS public.export_access (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  department TEXT,
+  granted_by UUID REFERENCES public.profiles(id) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT export_user_or_dept CHECK (user_id IS NOT NULL OR department IS NOT NULL)
+);
+
+CREATE INDEX IF NOT EXISTS idx_export_access_user_id ON public.export_access(user_id);
+CREATE INDEX IF NOT EXISTS idx_export_access_department ON public.export_access(department);
+
+ALTER TABLE public.export_access ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "Anyone can read export_access"
+  ON public.export_access FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE POLICY IF NOT EXISTS "Directors and admins can insert export_access"
+  ON public.export_access FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('Director', 'Admin'))
+  );
+
+CREATE POLICY IF NOT EXISTS "Directors and admins can delete export_access"
+  ON public.export_access FOR DELETE
+  TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('Director', 'Admin'))
+  );

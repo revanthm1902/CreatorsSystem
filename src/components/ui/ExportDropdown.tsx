@@ -1,15 +1,31 @@
 import { useRef, useState, useEffect } from 'react';
 import { Download, Loader2, Database, ClipboardList, ChevronDown } from 'lucide-react';
 import { exportToExcel, exportTasksData } from '../../lib/exportExcel';
+import { useAuthStore } from '../../stores/authStore';
+import { canUserExport } from '../../services/exportAccessService';
 
 type ExportType = 'complete' | 'tasks';
 
 export function ExportDropdown() {
+  const { profile } = useAuthStore();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<ExportType | null>(null);
+  const [permitted, setPermitted] = useState<boolean | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
+  useEffect(() => {
+    if (!profile) { setPermitted(false); return; }
+    if (profile.role === 'Director' || profile.role === 'Admin') {
+      setPermitted(true);
+      return;
+    }
+    let cancelled = false;
+    canUserExport(profile.id, profile.role, profile.department).then((ok) => {
+      if (!cancelled) setPermitted(ok);
+    });
+    return () => { cancelled = true; };
+  }, [profile]);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -17,6 +33,8 @@ export function ExportDropdown() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  if (!permitted) return null;
 
   const run = async (type: ExportType) => {
     setOpen(false);

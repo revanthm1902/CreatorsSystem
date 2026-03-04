@@ -56,7 +56,7 @@ export function UsersPage() {
   };
 
   const filteredUsers = useMemo(() => {
-    let list = roleFilter === 'All' ? [...users] : users.filter((u) => u.role === roleFilter);
+    const list = roleFilter === 'All' ? [...users] : users.filter((u) => u.role === roleFilter);
     if (sortField === 'department') list.sort((a, b) => ((a.department || '') < (b.department || '') ? -1 : 1) * (sortDir === 'asc' ? 1 : -1));
     else if (sortField === 'tokens') list.sort((a, b) => (a.total_tokens - b.total_tokens) * (sortDir === 'asc' ? 1 : -1));
     return list;

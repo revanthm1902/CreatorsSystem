@@ -69,10 +69,10 @@ export function ProfileSettingsPage() {
     if (profile && !initializedRef.current) {
       initializedRef.current = true;
       const newData = getInitialFormData(profile, user?.email ?? undefined);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData(newData);
       setSelectedDepartment(profile.department ?? null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -95,6 +95,7 @@ export function ProfileSettingsPage() {
       updateData.department = selectedDepartment;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await updateProfile(updateData as any);
 
     setProfileLoading(false);

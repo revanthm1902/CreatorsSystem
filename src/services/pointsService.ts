@@ -14,10 +14,6 @@ import { logger } from '../lib/logger';
 
 const CAT = 'pointsService';
 
-// ---------------------------------------------------------------------------
-// Token calculation (pure business logic — no I/O)
-// ---------------------------------------------------------------------------
-
 export interface TokenCalculation {
   isOnTime: boolean;
   baseTokens: number;
@@ -42,9 +38,7 @@ export interface TokenCalculation {
 export function calculateTokens(tokens: number, deadline: string, adminAward?: number): TokenCalculation {
   const now = new Date();
   const deadlineDate = new Date(deadline);
-  const isOnTime = now <= deadlineDate;
-
-  // On-time → full planned tokens; Late → forfeited (0)
+  const isOnTime = now <= deadlineDate;
   const baseTokens = isOnTime ? tokens : 0;
 
   // Admin discretionary award (bonus on-time, or mercy tokens when late)
@@ -61,10 +55,6 @@ export function calculateTokens(tokens: number, deadline: string, adminAward?: n
 
   return { isOnTime, baseTokens, bonusTokens, totalTokens, reason };
 }
-
-// ---------------------------------------------------------------------------
-// Data-access
-// ---------------------------------------------------------------------------
 
 /** Insert a row into `points_log`. */
 export async function insertPointsLog(entry: {

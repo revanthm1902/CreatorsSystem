@@ -120,8 +120,17 @@ export interface DepartmentAccess {
   can_view_department: string;
   granted_by: string | null;
   created_at: string;
-  // Joined data (optional)
   user?: Profile;
+}
+
+export interface ExportAccess {
+  id: string;
+  user_id: string | null;
+  department: string | null;
+  granted_by: string | null;
+  created_at: string;
+  user?: Profile;
+  granter?: Profile;
 }
 
 export interface Database {

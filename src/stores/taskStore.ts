@@ -55,10 +55,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   lastFetch: 0,
   _lastUserId: undefined,
   _lastRole: undefined,
-
-  // -----------------------------------------------------------------------
-  // Fetch
-  // -----------------------------------------------------------------------
   fetchTasks: async (userId?: string, role?: string, force = false) => {
     const state = get();
     const now = Date.now();
@@ -83,10 +79,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set({ loading: false });
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Create
-  // -----------------------------------------------------------------------
   createTask: async (task, creatorRole: string) => {
     logger.info(CAT, 'createTask — start', { title: task.title, creatorRole });
     const directorApproved = creatorRole === 'Director';
@@ -151,10 +143,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Edit
-  // -----------------------------------------------------------------------
   editTask: async (taskId, updates, actorId, actorRole) => {
     const directorApproved = actorRole === 'Director';
 
@@ -199,10 +187,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Status update (user submits work)
-  // -----------------------------------------------------------------------
   updateTaskStatus: async (taskId, status, actorId, submittedAt?, submissionNote?, powUrl?) => {
     const extras: { submitted_at?: string; submission_note?: string; pow_url?: string } = {};
     if (submittedAt) extras.submitted_at = submittedAt;
@@ -251,10 +235,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Director approval
-  // -----------------------------------------------------------------------
   approveTaskByDirector: async (taskId, actorId) => {
     try {
       const { error } = await taskService.approveTaskByDirector(taskId);
@@ -288,11 +268,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       logger.error(CAT, 'approveTaskByDirector exception', { error: message });
       return { error: message };
     }
-  },
-
-  // -----------------------------------------------------------------------
-  // Admin approves submitted work → award tokens
-  // -----------------------------------------------------------------------
+  },
   approveTask: async (taskId, userId, tokens, deadline, actorId, bonusTokens?) => {
     const approvedAt = new Date().toISOString();
     const calc = pointsService.calculateTokens(tokens, deadline, bonusTokens);
@@ -358,10 +334,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Reject
-  // -----------------------------------------------------------------------
   rejectTask: async (taskId, actorId) => {
     const task = get().tasks.find(t => t.id === taskId);
 
@@ -396,10 +368,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Reassign (send back for rework)
-  // -----------------------------------------------------------------------
   reassignTask: async (taskId, actorId) => {
     const task = get().tasks.find(t => t.id === taskId);
 
@@ -441,10 +409,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Feedback
-  // -----------------------------------------------------------------------
   addFeedback: async (taskId, feedback) => {
     try {
       const { error } = await taskService.setTaskFeedback(taskId, feedback);
@@ -461,10 +425,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Delete
-  // -----------------------------------------------------------------------
   deleteTask: async (taskId, actorId) => {
     const task = get().tasks.find(t => t.id === taskId);
 
@@ -500,10 +460,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Extend deadline
-  // -----------------------------------------------------------------------
   extendDeadline: async (taskId, newDeadline, actorId) => {
     try {
       const task = get().tasks.find((t) => t.id === taskId);
@@ -517,8 +473,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       );
 
       if (error) return { error };
-
-      // Update local state
       set((s) => ({
         tasks: s.tasks.map((t) =>
           t.id === taskId
@@ -530,8 +484,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             : t,
         ),
       }));
-
-      // Log activity
       profileService.resolveProfileNames([actorId])
         .then((profiles) => {
           const actorName = profiles.find(p => p.id === actorId)?.full_name || 'Someone';
@@ -552,10 +504,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Link pow_url to existing task
-  // -----------------------------------------------------------------------
   linkPowUrl: async (taskId, url, issueState) => {
     try {
       const val = url || null;
@@ -608,20 +556,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { tasks: s.tasks.map(t => map.has(t.id) ? { ...t, issue_state: map.get(t.id)! } : t) };
     });
   },
-
-  // -----------------------------------------------------------------------
-  // Realtime subscription
-  // -----------------------------------------------------------------------
   subscribeToTasks: () => {
     return taskService.subscribeToTaskChanges(() => {
       const { _lastUserId, _lastRole } = get();
       get().fetchTasks(_lastUserId, _lastRole, true);
     });
   },
-
-  // -----------------------------------------------------------------------
-  // Reset
-  // -----------------------------------------------------------------------
   reset: () => {
     set({ tasks: [], loading: false, initialized: false, lastFetch: 0, _lastUserId: undefined, _lastRole: undefined });
   },

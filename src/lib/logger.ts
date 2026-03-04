@@ -32,9 +32,6 @@ const STORAGE_KEY = 'creators_system_logs';
 const MAX_ENTRIES = 500; // circular buffer size
 const PERSIST_INTERVAL_MS = 5_000;
 
-// ---------------------------------------------------------------------------
-// In-memory buffer
-// ---------------------------------------------------------------------------
 let buffer: LogEntry[] = [];
 
 // Hydrate from localStorage on first load
@@ -67,9 +64,6 @@ function ensurePersistTimer() {
   }, PERSIST_INTERVAL_MS);
 }
 
-// ---------------------------------------------------------------------------
-// Core logging function
-// ---------------------------------------------------------------------------
 function log(level: LogLevel, category: string, message: string, data?: unknown): void {
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
@@ -80,8 +74,6 @@ function log(level: LogLevel, category: string, message: string, data?: unknown)
   };
 
   buffer.push(entry);
-
-  // Keep buffer bounded
   if (buffer.length > MAX_ENTRIES) {
     buffer = buffer.slice(-MAX_ENTRIES);
   }
@@ -105,9 +97,6 @@ function log(level: LogLevel, category: string, message: string, data?: unknown)
   }
 }
 
-// ---------------------------------------------------------------------------
-// Sanitise helper — prevents logging sensitive / huge objects
-// ---------------------------------------------------------------------------
 function sanitise(value: unknown): unknown {
   if (value === null || value === undefined) return value;
   try {
@@ -121,10 +110,6 @@ function sanitise(value: unknown): unknown {
     return String(value);
   }
 }
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 
 export const logger = {
   debug: (category: string, message: string, data?: unknown) =>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+﻿import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTaskStore } from '../stores/taskStore';
 import { useAuthStore } from '../stores/authStore';
 import { useUserStore } from '../stores/userStore';
@@ -17,10 +17,12 @@ import {
   Trash2,
   UserPlus,
   LayoutGrid,
+  Download,
 } from 'lucide-react';
-import type { Task, TaskStatus, Profile, DepartmentAccess } from '../types/database';
+import type { Task, TaskStatus, Profile, DepartmentAccess, ExportAccess } from '../types/database';
 import { ALL_DEPARTMENTS, USER_DEPARTMENTS } from '../types/database';
 import * as departmentService from '../services/departmentService';
+import * as exportAccessService from '../services/exportAccessService';
 
 export function TasksPage() {
   const { profile } = useAuthStore();
@@ -44,9 +46,14 @@ export function TasksPage() {
   const [newRuleTo, setNewRuleTo] = useState<string[]>([]);
   const [newUserRuleUser, setNewUserRuleUser] = useState('');
   const [newUserRuleTo, setNewUserRuleTo] = useState<string[]>([]);
-  const [accessTab, setAccessTab] = useState<'dept' | 'user'>('dept');
+  const [accessTab, setAccessTab] = useState<'dept' | 'user' | 'export'>('dept');
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
+
+  // Export access management state
+  const [exportRules, setExportRules] = useState<ExportAccess[]>([]);
+  const [newExportUser, setNewExportUser] = useState('');
+  const [newExportDept, setNewExportDept] = useState('');
 
   const isAdmin = profile?.role === 'Director' || profile?.role === 'Admin';
   const isDirector = profile?.role === 'Director';
@@ -94,7 +101,7 @@ export function TasksPage() {
   /* ------------------------------------------------------------------ */
   const userMap = useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
 
-  const effectiveViewableDepts = isAdmin ? [...ALL_DEPARTMENTS] : viewableDepartments;
+  const effectiveViewableDepts = useMemo(() => isAdmin ? [...ALL_DEPARTMENTS] : viewableDepartments, [isAdmin, viewableDepartments]);
 
   /* ------------------------------------------------------------------ */
   /* Merge & deduplicate tasks                                           */
@@ -198,12 +205,46 @@ export function TasksPage() {
     else await loadAccessRules();
   };
 
+  /* Export access management */
+  const loadExportRules = useCallback(async () => {
+    const { data, error: err } = await exportAccessService.fetchAllExportAccess();
+    if (err) setAccessError(err);
+    else setExportRules(data ?? []);
+  }, []);
+
+  const handleGrantExportUser = async () => {
+    if (!newExportUser) return;
+    setAccessError(null);
+    const { error: err } = await exportAccessService.grantUserExportAccess(newExportUser, profile?.id ?? '');
+    if (err) setAccessError(err.includes('duplicate') ? 'Export access already granted' : err);
+    else { setNewExportUser(''); await loadExportRules(); }
+  };
+
+  const handleGrantExportDept = async () => {
+    if (!newExportDept) return;
+    setAccessError(null);
+    const { error: err } = await exportAccessService.grantDeptExportAccess(newExportDept, profile?.id ?? '');
+    if (err) setAccessError(err.includes('duplicate') ? 'Export access already granted' : err);
+    else { setNewExportDept(''); await loadExportRules(); }
+  };
+
+  const handleRevokeExport = async (ruleId: string) => {
+    const { error: err } = await exportAccessService.revokeExportAccess(ruleId);
+    if (err) setAccessError(err);
+    else await loadExportRules();
+  };
+
   useEffect(() => {
-    if (showAccessManager && isAdmin) loadAccessRules();
-  }, [showAccessManager, isAdmin, loadAccessRules]);
+    if (showAccessManager && isAdmin) {
+      loadAccessRules();
+      loadExportRules();
+    }
+  }, [showAccessManager, isAdmin, loadAccessRules, loadExportRules]);
 
   const deptRules = accessRules.filter((r) => r.department != null && r.user_id == null);
   const userRules = accessRules.filter((r) => r.user_id != null);
+  const exportUserRules = exportRules.filter((r) => r.user_id != null);
+  const exportDeptRules = exportRules.filter((r) => r.department != null && r.user_id == null);
 
   /* Unique task creators for "Assigned by" filter */
   const assignerOptions = useMemo(() => {
@@ -224,9 +265,7 @@ export function TasksPage() {
 
   return (
     <div className="space-y-5 sm:space-y-8">
-      {/* ============================================================ */}
       {/* Header                                                       */}
-      {/* ============================================================ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <h1
@@ -271,9 +310,7 @@ export function TasksPage() {
         </div>
       </div>
 
-      {/* ============================================================ */}
       {/* Access Manager Panel (collapsible) — Admin / Director only   */}
-      {/* ============================================================ */}
       {isAdmin && showAccessManager && (
         <div
           className="rounded-2xl border p-4 sm:p-6 space-y-5"
@@ -328,6 +365,17 @@ export function TasksPage() {
               <UserPlus className="w-4 h-4" />
               <span className="hidden sm:inline">User → Dept</span>
               <span className="sm:hidden">User</span>
+            </button>
+            <button
+              onClick={() => setAccessTab('export')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                accessTab === 'export' ? 'bg-primary text-white shadow-sm' : ''
+              }`}
+              style={accessTab !== 'export' ? { color: 'var(--text-secondary)' } : undefined}
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export Access</span>
+              <span className="sm:hidden">Export</span>
             </button>
           </div>
 
@@ -572,12 +620,131 @@ export function TasksPage() {
               </div>
             </div>
           )}
+
+          {/* Export Access Tab */}
+          {accessTab === 'export' && (
+            <div className="space-y-5">
+              {/* Grant to User */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Grant to User</h4>
+                <div
+                  className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 p-4 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-elevated)' }}
+                >
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>User</label>
+                    <select
+                      value={newExportUser}
+                      onChange={(e) => setNewExportUser(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border text-sm"
+                      style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                    >
+                      <option value="">Select user...</option>
+                      {users
+                        .filter((u) => u.role === 'User' && !exportUserRules.some((r) => r.user_id === u.id))
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>{u.full_name} {u.department ? `(${u.department})` : ''}</option>
+                        ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleGrantExportUser}
+                    disabled={!newExportUser}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Grant
+                  </button>
+                </div>
+                {exportUserRules.length > 0 && (
+                  <div className="space-y-2">
+                    {exportUserRules.map((rule) => (
+                      <div
+                        key={rule.id}
+                        className="flex items-center justify-between p-3 rounded-xl border"
+                        style={{ backgroundColor: 'var(--bg-elevated)', borderColor: 'var(--border-color)' }}
+                      >
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="px-2.5 py-1 rounded-lg font-medium text-xs" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                            {rule.user?.full_name ?? rule.user_id}
+                          </span>
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>can export</span>
+                        </div>
+                        <button onClick={() => handleRevokeExport(rule.id)} className="p-1.5 rounded-lg transition-all shrink-0" style={{ color: 'var(--text-muted)' }} title="Revoke">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {exportUserRules.length === 0 && (
+                  <p className="text-sm py-2 text-center" style={{ color: 'var(--text-muted)' }}>No user-level export rules yet.</p>
+                )}
+              </div>
+
+              {/* Grant to Department */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Grant to Department</h4>
+                <div
+                  className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 p-4 rounded-xl"
+                  style={{ backgroundColor: 'var(--bg-elevated)' }}
+                >
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>Department</label>
+                    <select
+                      value={newExportDept}
+                      onChange={(e) => setNewExportDept(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border text-sm"
+                      style={{ backgroundColor: 'var(--bg-main)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                    >
+                      <option value="">Select department...</option>
+                      {USER_DEPARTMENTS
+                        .filter((d) => !exportDeptRules.some((r) => r.department === d))
+                        .map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleGrantExportDept}
+                    disabled={!newExportDept}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Grant
+                  </button>
+                </div>
+                {exportDeptRules.length > 0 && (
+                  <div className="space-y-2">
+                    {exportDeptRules.map((rule) => (
+                      <div
+                        key={rule.id}
+                        className="flex items-center justify-between p-3 rounded-xl border"
+                        style={{ backgroundColor: 'var(--bg-elevated)', borderColor: 'var(--border-color)' }}
+                      >
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="px-2.5 py-1 rounded-lg font-medium text-xs" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+                            {rule.department}
+                          </span>
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>— all members can export</span>
+                        </div>
+                        <button onClick={() => handleRevokeExport(rule.id)} className="p-1.5 rounded-lg transition-all shrink-0" style={{ color: 'var(--text-muted)' }} title="Revoke">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {exportDeptRules.length === 0 && (
+                  <p className="text-sm py-2 text-center" style={{ color: 'var(--text-muted)' }}>No department-level export rules yet.</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* Pending Director Approval — Director only                    */}
-      {/* ============================================================ */}
+      {/* Pending Director Approval — Director only */}
       {isDirector && pendingApprovalTasks.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
@@ -594,9 +761,7 @@ export function TasksPage() {
         </div>
       )}
 
-      {/* ============================================================ */}
       {/* Department Overview Cards                                    */}
-      {/* ============================================================ */}
       {effectiveViewableDepts.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {/* "All" card */}
@@ -654,9 +819,7 @@ export function TasksPage() {
         </div>
       )}
 
-      {/* ============================================================ */}
       {/* Status Filter                                                */}
-      {/* ============================================================ */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 px-1 filter-scroll">
         <Filter className="w-5 h-5 shrink-0" style={{ color: 'var(--text-muted)' }} />
         <div className="flex gap-1.5 sm:gap-2">
@@ -687,9 +850,7 @@ export function TasksPage() {
         )}
       </div>
 
-      {/* ============================================================ */}
       {/* Tasks Grid                                                   */}
-      {/* ============================================================ */}
       {deptLoading && allTasks.length === 0 ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-primary" />

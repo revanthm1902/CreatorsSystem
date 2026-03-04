@@ -49,10 +49,6 @@ export const useUserStore = create<UserState>((set, get) => ({
   loading: false,
   initialized: false,
   lastFetch: 0,
-
-  // -----------------------------------------------------------------------
-  // Fetch users
-  // -----------------------------------------------------------------------
   fetchUsers: async (force = false) => {
     const state = get();
     const now = Date.now();
@@ -75,10 +71,6 @@ export const useUserStore = create<UserState>((set, get) => ({
       set({ loading: false });
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Leaderboard
-  // -----------------------------------------------------------------------
   fetchLeaderboard: async (force = false) => {
     const state = get();
     const now = Date.now();
@@ -94,10 +86,6 @@ export const useUserStore = create<UserState>((set, get) => ({
       logger.error(CAT, 'fetchLeaderboard threw', { error: String(err) });
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Create user
-  // -----------------------------------------------------------------------
   createUser: async (email, password, fullName, role, actorId, actorName, department?) => {
     logger.info(CAT, 'createUser', { email, role, department });
 
@@ -132,8 +120,6 @@ export const useUserStore = create<UserState>((set, get) => ({
       if (setup.error || !setup.data) {
         return { error: setup.error ?? 'User created but profile setup returned an unexpected response.' };
       }
-
-      // Activity log (fire-and-forget)
       activityService.insertActivity({
         actor_id: actorId,
         action_type: 'user_added',
@@ -141,8 +127,6 @@ export const useUserStore = create<UserState>((set, get) => ({
         task_id: null,
         message: `${actorName} added ${fullName} as ${role}`,
       }).catch(() => {});
-
-      // Refresh users list in background
       get().fetchUsers(true).catch(() => {});
       return { error: null, employeeId: setup.data.employeeId };
     } catch (err: unknown) {
@@ -151,10 +135,6 @@ export const useUserStore = create<UserState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Give tokens
-  // -----------------------------------------------------------------------
   giveTokens: async (targetUserId, amount, reason, actorId, actorName, targetName) => {
     logger.info(CAT, 'giveTokens', { targetUserId, amount });
 
@@ -180,10 +160,6 @@ export const useUserStore = create<UserState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Delete user
-  // -----------------------------------------------------------------------
   deleteUser: async (userId) => {
     logger.info(CAT, 'deleteUser', { userId });
 
@@ -200,19 +176,17 @@ export const useUserStore = create<UserState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Update user department
-  // -----------------------------------------------------------------------
   updateUserDepartment: async (userId, department) => {
     logger.info(CAT, 'updateUserDepartment', { userId, department });
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await profileService.updateProfile(userId, { department: department as any });
       if (error) return { error };
 
       set((s) => ({
         users: s.users.map((u) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           u.id === userId ? { ...u, department: department as any } : u,
         ),
       }));
@@ -225,10 +199,6 @@ export const useUserStore = create<UserState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Password-reset requests
-  // -----------------------------------------------------------------------
   fetchPasswordResetRequests: async () => {
     try {
       const { data } = await userServiceMod.fetchPendingPasswordResets();
@@ -282,10 +252,6 @@ export const useUserStore = create<UserState>((set, get) => ({
       return { error: message };
     }
   },
-
-  // -----------------------------------------------------------------------
-  // Reset
-  // -----------------------------------------------------------------------
   reset: () => {
     set({ users: [], leaderboard: [], passwordResetRequests: [], loading: false, initialized: false, lastFetch: 0 });
   },

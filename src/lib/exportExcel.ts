@@ -7,7 +7,6 @@
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(ts: string | null | undefined): string {
   if (!ts) return '';
@@ -36,7 +35,6 @@ function styledSheet(
   XLSX.utils.book_append_sheet(wb, ws, name);
 }
 
-// ─── tasks-only export ────────────────────────────────────────────────────────
 
 export async function exportTasksData(): Promise<void> {
   const [tasksRes, pointsRes, activityRes] = await Promise.all([
@@ -151,8 +149,11 @@ export async function exportTasksData(): Promise<void> {
   styledSheet(wb, '📈 Status Breakdown', [
     { 'Status': 'Total Tasks', 'Count': tasks.length },
     ...Object.entries(statusGroups).map(([status, count]) => ({ 'Status': status, 'Count': count })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { 'Status': 'GitHub-Linked', 'Count': tasks.filter((t: any) => t.pow_url).length },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { 'Status': 'Extended Deadlines', 'Count': tasks.filter((t: any) => t.original_deadline).length },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { 'Status': 'On-Time Completions', 'Count': tasks.filter((t: any) => t.submitted_at && t.deadline && new Date(t.submitted_at) <= new Date(t.deadline)).length },
   ], [26, 12]);
 
@@ -182,7 +183,6 @@ export async function exportTasksData(): Promise<void> {
   XLSX.writeFile(wb, `CreatorsSystem_Tasks_${datestamp}.xlsx`);
 }
 
-// ─── full export ──────────────────────────────────────────────────────────────
 
 export async function exportToExcel(): Promise<void> {
   // ── 1. Fetch all tables in parallel ────────────────────────────────────────
