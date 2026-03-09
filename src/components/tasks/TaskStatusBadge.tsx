@@ -1,11 +1,12 @@
 import type { TaskStatus } from '../../types/database';
-import { Clock, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Clock, Eye, CheckCircle, XCircle, FileEdit } from 'lucide-react';
 
 interface TaskStatusBadgeProps {
   status: TaskStatus;
 }
 
 const statusConfig: Record<TaskStatus, { icon: typeof Clock; color: string; bg: string }> = {
+  Draft: { icon: FileEdit, color: 'text-gray-400', bg: 'bg-gray-400/10' },
   Pending: { icon: Clock, color: 'text-warning', bg: 'bg-warning/10' },
   'Under Review': { icon: Eye, color: 'text-accent', bg: 'bg-accent/10' },
   Completed: { icon: CheckCircle, color: 'text-success', bg: 'bg-success/10' },

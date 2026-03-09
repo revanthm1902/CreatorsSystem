@@ -49,7 +49,7 @@ export async function fetchTasks(
 
 /** Insert a new task. Returns the created row. */
 export async function insertTask(
-  task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback' | 'original_deadline'>,
+  task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback' | 'original_deadline' | 'previous_submissions'>,
   directorApproved: boolean,
 ): Promise<{ data: Task | null; error: string | null }> {
   const payload = { ...task, director_approved: directorApproved };
@@ -233,11 +233,42 @@ export async function completeTask(
   }
 }
 
-/** Reset a task back to Pending (for reassignment). */
-export async function resetTaskToPending(taskId: string): Promise<{ error: string | null }> {
+/** Reset a task back to Pending (for reassignment), archiving previous submission. */
+export async function resetTaskToPending(
+  taskId: string,
+  previousSubmission?: { submission_note: string | null; admin_feedback: string | null; pow_url: string | null; submitted_at: string | null },
+): Promise<{ error: string | null }> {
   logger.info(CAT, 'resetTaskToPending', { taskId });
 
   try {
+    // If there's a previous submission, append it to the history
+    if (previousSubmission && previousSubmission.submitted_at) {
+      const { error: rpcErr } = await supabase.rpc('append_previous_submission', {
+        p_task_id: taskId,
+        p_submission: {
+          submission_note: previousSubmission.submission_note,
+          admin_feedback: previousSubmission.admin_feedback,
+          pow_url: previousSubmission.pow_url,
+          submitted_at: previousSubmission.submitted_at,
+          reassigned_at: new Date().toISOString(),
+        },
+      });
+      // If rpc fails (e.g. function doesn't exist), fall back to manual update
+      if (rpcErr) {
+        logger.warn(CAT, 'append_previous_submission rpc failed, using manual update', { error: rpcErr.message });
+        const { data: current } = await supabase.from('tasks').select('previous_submissions').eq('id', taskId).single();
+        const history = Array.isArray(current?.previous_submissions) ? current.previous_submissions : [];
+        history.push({
+          submission_note: previousSubmission.submission_note,
+          admin_feedback: previousSubmission.admin_feedback,
+          pow_url: previousSubmission.pow_url,
+          submitted_at: previousSubmission.submitted_at,
+          reassigned_at: new Date().toISOString(),
+        });
+        await supabase.from('tasks').update({ previous_submissions: history }).eq('id', taskId);
+      }
+    }
+
     const { error } = await supabase
       .from('tasks')
       .update({

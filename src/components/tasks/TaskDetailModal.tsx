@@ -5,7 +5,7 @@
  */
 
 import { format } from 'date-fns';
-import type { Task } from '../../types/database';
+import type { Task, PreviousSubmission } from '../../types/database';
 import { TaskStatusBadge } from './TaskStatusBadge';
 import { TaskCountdown } from './TaskCountdown';
 import { Markdown } from '../ui/Markdown';
@@ -17,6 +17,7 @@ import {
   MessageSquare,
   FileText,
   ExternalLink,
+  RotateCcw,
 } from 'lucide-react';
 import { GHIssueBadge } from './GHIssueBadge';
 
@@ -26,6 +27,8 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
+  const previousSubmissions: PreviousSubmission[] = Array.isArray(task.previous_submissions) ? task.previous_submissions : [];
+  const hasPreviousSubmissions = previousSubmissions.length > 0;
 
   return (
     <div
@@ -198,7 +201,71 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
             </div>
           )}
 
-          {/* Submission Note */}
+          {/* Previous Submissions (reassignment history) */}
+          {hasPreviousSubmissions && (
+            <div className="space-y-3">
+              <h3
+                className="text-sm font-medium flex items-center gap-2"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <RotateCcw className="w-4 h-4" />
+                Previous Submissions ({previousSubmissions.length})
+              </h3>
+              {previousSubmissions.map((sub, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-xl p-4 space-y-2"
+                  style={{
+                    backgroundColor: 'var(--bg-elevated)',
+                    borderLeft: '3px solid var(--color-warning, #f59e0b)',
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500">
+                      Attempt {idx + 1}
+                    </span>
+                    {sub.submitted_at && (
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        Submitted {format(new Date(sub.submitted_at), 'MMM d, yyyy h:mm a')}
+                      </span>
+                    )}
+                  </div>
+                  {sub.submission_note && (
+                    <div>
+                      <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>User's Submission</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>
+                        {sub.submission_note}
+                      </p>
+                    </div>
+                  )}
+                  {sub.pow_url && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <ExternalLink className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />
+                      <a href={sub.pow_url} target="_blank" rel="noopener noreferrer"
+                        className="underline truncate" style={{ color: 'var(--color-primary)' }}>
+                        {sub.pow_url}
+                      </a>
+                    </div>
+                  )}
+                  {sub.admin_feedback && (
+                    <div>
+                      <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Admin Feedback</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>
+                        {sub.admin_feedback}
+                      </p>
+                    </div>
+                  )}
+                  {sub.reassigned_at && (
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      Reassigned on {format(new Date(sub.reassigned_at), 'MMM d, yyyy h:mm a')}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Current Submission Note */}
           {task.submission_note && (
             <div>
               <h3
@@ -206,7 +273,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 style={{ color: 'var(--text-secondary)' }}
               >
                 <FileText className="w-4 h-4" />
-                User's Work Summary
+                {hasPreviousSubmissions ? `Current Submission (Attempt ${previousSubmissions.length + 1})` : "User's Work Summary"}
               </h3>
               <div
                 className="rounded-xl p-4"
@@ -245,7 +312,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 style={{ color: 'var(--text-secondary)' }}
               >
                 <MessageSquare className="w-4 h-4" />
-                Feedback
+                {task.status === 'Completed' ? 'Approval Feedback' : 'Feedback'}
               </h3>
               <div
                 className="rounded-xl p-4"

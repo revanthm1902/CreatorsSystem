@@ -18,11 +18,94 @@ import {
   UserPlus,
   LayoutGrid,
   Download,
+  Search,
+  FileEdit,
 } from 'lucide-react';
 import type { Task, TaskStatus, Profile, DepartmentAccess, ExportAccess } from '../types/database';
 import { ALL_DEPARTMENTS, USER_DEPARTMENTS } from '../types/database';
 import * as departmentService from '../services/departmentService';
 import * as exportAccessService from '../services/exportAccessService';
+
+/* ── DraftsSection: shows draft tasks with ability to publish ──────── */
+function DraftsSection({ draftTasks }: { draftTasks: (Task & { assignee?: Profile })[] }) {
+  const { users } = useUserStore();
+  const { profile } = useAuthStore();
+  const { publishDraft, deleteTask } = useTaskStore();
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [assignTo, setAssignTo] = useState<Record<string, string>>({});
+
+  const userOptions = users.filter(u => u.role === 'User');
+
+  const handlePublish = async (taskId: string) => {
+    const userId = assignTo[taskId];
+    if (!userId || !profile) return;
+    setPublishingId(taskId);
+    await publishDraft(taskId, userId, profile.id, profile.role);
+    setPublishingId(null);
+  };
+
+  const handleDelete = async (taskId: string) => {
+    if (!profile) return;
+    if (!window.confirm('Delete this draft?')) return;
+    await deleteTask(taskId, profile.id);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <FileEdit className="w-6 h-6 text-blue-500" />
+        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+          Drafts ({draftTasks.length})
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 p-3 sm:p-4 rounded-xl border-2 border-dashed border-blue-500/30 bg-blue-500/5">
+        {draftTasks.map((task) => (
+          <div key={task.id} className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
+            <div className="p-4 sm:p-5">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold leading-tight mb-1" style={{ color: 'var(--text-primary)' }}>{task.title}</h3>
+                  <p className="text-sm line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{task.description}</p>
+                </div>
+                <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/30">Draft</span>
+              </div>
+              <div className="mt-3 flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Assign To</label>
+                  <select
+                    value={assignTo[task.id] || ''}
+                    onChange={(e) => setAssignTo(prev => ({ ...prev, [task.id]: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                  >
+                    <option value="">Select a user...</option>
+                    {userOptions.map(u => <option key={u.id} value={u.id}>{u.full_name} ({u.employee_id})</option>)}
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handlePublish(task.id)}
+                    disabled={!assignTo[task.id] || publishingId === task.id}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-medium disabled:opacity-50 transition-all"
+                  >
+                    {publishingId === task.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                    Publish
+                  </button>
+                  <button
+                    onClick={() => handleDelete(task.id)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-danger/10 text-danger hover:bg-danger/20 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function TasksPage() {
   const { profile } = useAuthStore();
@@ -33,6 +116,7 @@ export function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'All'>('All');
   const [selectedDept, setSelectedDept] = useState<string | 'All'>('All');
   const [assignedByFilter, setAssignedByFilter] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Department tasks for regular users (fetched via departmentService)
   const [deptTasks, setDeptTasks] = useState<(Task & { assignee?: Profile })[]>([]);
@@ -120,10 +204,13 @@ export function TasksPage() {
     ? allTasks.filter((t) => !t.director_approved && t.status === 'Pending')
     : [];
 
-  // Approved / visible tasks
+  // Approved / visible tasks (exclude drafts)
   const approvedTasks = isAdmin
-    ? allTasks.filter((t) => !(isDirector && !t.director_approved && t.status === 'Pending'))
-    : allTasks.filter((t) => t.director_approved);
+    ? allTasks.filter((t) => t.status !== 'Draft' && !(isDirector && !t.director_approved && t.status === 'Pending'))
+    : allTasks.filter((t) => t.director_approved && t.status !== 'Draft');
+
+  // Draft tasks (admin/director only)
+  const draftTasks = isAdmin ? allTasks.filter((t) => t.status === 'Draft') : [];
 
   /* ------------------------------------------------------------------ */
   /* Department + status filtering                                       */
@@ -139,8 +226,21 @@ export function TasksPage() {
   const filteredTasks = useMemo(() => {
     let result = statusFilter === 'All' ? deptFilteredTasks : deptFilteredTasks.filter((t) => t.status === statusFilter);
     if (assignedByFilter !== 'All') result = result.filter((t) => t.created_by === assignedByFilter);
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter((t) => {
+        const assignee = userMap.get(t.assigned_to);
+        return t.title.toLowerCase().includes(q)
+          || t.description?.toLowerCase().includes(q)
+          || assignee?.full_name?.toLowerCase().includes(q);
+      });
+    }
+    // Sort: Under Review → Pending → Completed → Rejected
+    const statusOrder: Record<string, number> = { 'Under Review': 0, 'Pending': 1, 'Completed': 2, 'Rejected': 3 };
+    result = [...result].sort((a, b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9));
     return result;
-  }, [deptFilteredTasks, statusFilter, assignedByFilter]);
+  }, [deptFilteredTasks, statusFilter, assignedByFilter, searchQuery, userMap]);
 
   /* ------------------------------------------------------------------ */
   /* Department stats                                                    */
@@ -817,6 +917,24 @@ export function TasksPage() {
             </button>
           ))}
         </div>
+      )}
+
+      {/* Search Bar                                                  */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search tasks by title, description, or assignee..."
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          style={{ backgroundColor: 'var(--input-bg)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+        />
+      </div>
+
+      {/* Draft Tasks — Admin/Director only                            */}
+      {isAdmin && draftTasks.length > 0 && (
+        <DraftsSection draftTasks={draftTasks} />
       )}
 
       {/* Status Filter                                                */}

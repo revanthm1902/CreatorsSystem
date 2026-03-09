@@ -30,8 +30,9 @@ interface TaskState {
   _lastUserId: string | undefined;
   _lastRole: string | undefined;
   fetchTasks: (userId?: string, role?: string, force?: boolean) => Promise<void>;
-  createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback' | 'original_deadline'>, creatorRole: string) => Promise<{ error: string | null }>;
+  createTask: (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'submitted_at' | 'approved_at' | 'submission_note' | 'admin_feedback' | 'original_deadline' | 'previous_submissions'>, creatorRole: string) => Promise<{ error: string | null }>;
   editTask: (taskId: string, updates: { title: string; description: string; deadline: string; tokens: number; assigned_to: string }, actorId: string, actorRole: string) => Promise<{ error: string | null }>;
+  publishDraft: (taskId: string, assignedTo: string, actorId: string, actorRole: string) => Promise<{ error: string | null }>;
   updateTaskStatus: (taskId: string, status: TaskStatus, actorId: string, submittedAt?: string, submissionNote?: string, powUrl?: string) => Promise<{ error: string | null }>;
   approveTask: (taskId: string, userId: string, tokens: number, deadline: string, actorId: string, bonusTokens?: number) => Promise<{ error: string | null }>;
   rejectTask: (taskId: string, actorId: string) => Promise<{ error: string | null }>;
@@ -187,6 +188,44 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return { error: message };
     }
   },
+  publishDraft: async (taskId, assignedTo, actorId, actorRole) => {
+    const directorApproved = actorRole === 'Director';
+    try {
+      const updateData: Partial<Task> = {
+        assigned_to: assignedTo,
+        status: 'Pending' as TaskStatus,
+        director_approved: directorApproved,
+      };
+      const { error } = await taskService.updateTask(taskId, updateData);
+      if (error) return { error };
+
+      const task = get().tasks.find(t => t.id === taskId);
+      set((s) => ({
+        tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, ...updateData } : t)),
+      }));
+
+      // Activity log
+      profileService.resolveProfileNames([actorId, assignedTo])
+        .then((profiles) => {
+          const actorName = profiles.find(p => p.id === actorId)?.full_name || 'Someone';
+          const targetName = profiles.find(p => p.id === assignedTo)?.full_name || 'a user';
+          return activityService.insertActivity({
+            actor_id: actorId,
+            action_type: 'task_assigned',
+            target_user_id: assignedTo,
+            task_id: taskId,
+            message: `${actorName} published draft "${task?.title}" and assigned it to ${targetName}`,
+          });
+        })
+        .catch((err) => logger.warn(CAT, 'publishDraft activity log failed', { error: String(err) }));
+
+      return { error: null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(CAT, 'publishDraft exception', { error: message });
+      return { error: message };
+    }
+  },
   updateTaskStatus: async (taskId, status, actorId, submittedAt?, submissionNote?, powUrl?) => {
     const extras: { submitted_at?: string; submission_note?: string; pow_url?: string } = {};
     if (submittedAt) extras.submitted_at = submittedAt;
@@ -268,7 +307,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       logger.error(CAT, 'approveTaskByDirector exception', { error: message });
       return { error: message };
     }
-  },
+  },
+
   approveTask: async (taskId, userId, tokens, deadline, actorId, bonusTokens?) => {
     const approvedAt = new Date().toISOString();
     const calc = pointsService.calculateTokens(tokens, deadline, bonusTokens);
@@ -372,14 +412,35 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const task = get().tasks.find(t => t.id === taskId);
 
     try {
-      const { error } = await taskService.resetTaskToPending(taskId);
+      // Pass previous submission data so it gets archived
+      const previousSubmission = task ? {
+        submission_note: task.submission_note,
+        admin_feedback: task.admin_feedback,
+        pow_url: task.pow_url,
+        submitted_at: task.submitted_at,
+      } : undefined;
+
+      const { error } = await taskService.resetTaskToPending(taskId, previousSubmission);
       if (error) return { error };
+
+      // Compute updated previous_submissions for local state
+      const prevSubs = Array.isArray(task?.previous_submissions) ? [...task.previous_submissions] : [];
+      if (previousSubmission?.submitted_at) {
+        prevSubs.push({
+          submission_note: previousSubmission.submission_note,
+          admin_feedback: previousSubmission.admin_feedback,
+          pow_url: previousSubmission.pow_url,
+          submitted_at: previousSubmission.submitted_at,
+          reassigned_at: new Date().toISOString(),
+        });
+      }
 
       const resetFields: Partial<Task> = {
         status: 'Pending' as TaskStatus,
         submitted_at: null,
         submission_note: null,
         approved_at: null,
+        previous_submissions: prevSubs as Task['previous_submissions'],
       };
 
       set((s) => ({

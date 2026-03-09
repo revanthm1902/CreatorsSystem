@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useMemo } from 'react';
-import { X, Save, Calendar, Zap, Github, Loader2, Check, Link } from 'lucide-react';
+import { X, Save, Calendar, Zap, Github, Loader2, Check, Link, FileEdit } from 'lucide-react';
 import { useTaskStore } from '../../stores/taskStore';
 import { useUserStore } from '../../stores/userStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -100,6 +100,7 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
     e.preventDefault(); setError('');
     if (!profile) return;
     if (new Date(deadline) <= new Date()) return setError('Deadline must be in the future');
+    if (!assignedTo) return setError('Please select a user to assign');
     setLoading(true);
     try {
       const result = await createTask({
@@ -112,6 +113,27 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unexpected error');
     } finally { setLoading(false); }
+  };
+
+  const [draftLoading, setDraftLoading] = useState(false);
+  const handleSaveDraft = async () => {
+    setError('');
+    if (!profile) return;
+    if (!title.trim()) return setError('Title is required for a draft');
+    if (!deadline) return setError('Deadline is required');
+    if (new Date(deadline) <= new Date()) return setError('Deadline must be in the future');
+    setDraftLoading(true);
+    try {
+      const result = await createTask({
+        title, description, assigned_to: assignedTo || profile.id, created_by: profile.id,
+        deadline: new Date(deadline).toISOString(), tokens, status: 'Draft' as any, director_approved: false,
+        pow_url: powUrl.trim() || null, issue_state: null,
+      }, profile.role);
+      if (result.error) setError(result.error);
+      else onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unexpected error');
+    } finally { setDraftLoading(false); }
   };
 
   const userOptions = users.filter(u => u.role === 'User');
@@ -227,9 +249,9 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Assign To</label>
-            <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} required
+            <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)}
               disabled={usersLoading && userOptions.length === 0} className={F} style={FS}>
-              <option value="">{usersLoading && !userOptions.length ? 'Loading' : 'Select a user'}</option>
+              <option value="">{usersLoading && !userOptions.length ? 'Loading' : 'Select a user (optional for draft)'}</option>
               {userOptions.map(u => {
                 const ghName = u.github_url?.replace(/.*github\.com\//, '').replace(/\/.*/, '') || '';
                 return <option key={u.id} value={u.id}>{u.full_name} ({u.employee_id}){ghName ? ` — @${ghName}` : ''}</option>;
@@ -255,9 +277,16 @@ export function CreateTaskModal({ onClose }: CreateTaskModalProps) {
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-3 rounded-lg"
+            <button type="button" onClick={onClose} className="px-4 py-3 rounded-lg"
               style={{ backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>Cancel</button>
-            <button type="submit" disabled={loading}
+            <button type="button" onClick={handleSaveDraft} disabled={draftLoading || loading}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold disabled:opacity-50 border transition-all"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-elevated)' }}>
+              {draftLoading
+                ? <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                : <><FileEdit className="w-4 h-4" />Draft</>}
+            </button>
+            <button type="submit" disabled={loading || draftLoading}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-lg disabled:opacity-50">
               {loading
                 ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

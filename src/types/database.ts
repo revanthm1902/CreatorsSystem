@@ -1,5 +1,5 @@
 export type UserRole = 'Director' | 'Admin' | 'User';
-export type TaskStatus = 'Pending' | 'Under Review' | 'Completed' | 'Rejected';
+export type TaskStatus = 'Draft' | 'Pending' | 'Under Review' | 'Completed' | 'Rejected';
 
 export type Department = 'Admin' | 'Non-Technical' | 'Web Dev' | 'App Dev' | 'AI Engineer' | 'Management Executive';
 
@@ -26,6 +26,14 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface PreviousSubmission {
+  submission_note: string | null;
+  admin_feedback: string | null;
+  pow_url: string | null;
+  submitted_at: string | null;
+  reassigned_at: string;
+}
+
 export interface Task {
   id: string;
   created_by: string;
@@ -43,6 +51,7 @@ export interface Task {
   issue_state: string | null;
   submitted_at: string | null;
   approved_at: string | null;
+  previous_submissions: PreviousSubmission[];
   created_at: string;
   updated_at: string;
 }
